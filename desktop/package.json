@@ -1,0 +1,50 @@
+{
+  "name": "payja-desktop",
+  "version": "1.0.0",
+  "description": "PayJA Admin Desktop Application",
+  "main": "src/electron/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:build": "npm run build && electron-builder"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.21.1",
+    "antd": "^5.13.0",
+    "@ant-design/icons": "^5.2.6",
+    "zustand": "^4.4.7",
+    "axios": "^1.6.5",
+    "recharts": "^2.10.3",
+    "dayjs": "^1.11.10"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.47",
+    "@types/react-dom": "^18.2.18",
+    "@vitejs/plugin-react": "^4.2.1",
+    "electron": "^28.1.3",
+    "electron-builder": "^24.9.1",
+    "vite": "^5.0.11",
+    "concurrently": "^8.2.2",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.payja.desktop",
+    "productName": "PayJA Admin",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "src/electron/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    }
+  }
+}
