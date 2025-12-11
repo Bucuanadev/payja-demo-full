@@ -575,10 +575,6 @@ export class UssdMenuService {
           purpose: state.purpose,
           totalAmount: state.totalAmount,
           monthlyPayment: state.totalAmount,
-          bankCode: state.bankCode,
-          bankName: state.bankName,
-          interestRate: 15,
-          channel: 'MOVITEL', // Identificar origem USSD
         });
 
         console.log('[USSD-MENU] Emprestimo criado:', loan.id);

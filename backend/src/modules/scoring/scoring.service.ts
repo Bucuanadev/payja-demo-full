@@ -1,6 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
-import { BankAdaptersService } from '../bank-adapters/bank-adapters-v2.service';
 
 interface ScoringFactors {
   historyScore: number;
@@ -10,27 +9,17 @@ interface ScoringFactors {
   baseScore: number;
 }
 
-interface ScoringDecision {
-  decision: 'APPROVED' | 'REJECTED' | 'MANUAL_REVIEW';
-  maxAmount: number | null;
-  bankLimit?: number;
-  finalLimit?: number;
-}
-
 @Injectable()
 export class ScoringService {
-  private readonly logger = new Logger(ScoringService.name);
-  
-  constructor(
-    private prisma: PrismaService,
-    private bankAdaptersService: BankAdaptersService,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
-  async calculateScoring(customerId: string, loanId: string, bankCode?: string) {
+  async calculateScoring(customerId: string, loanId: string) {
     const customer = await this.prisma.customer.findUnique({
       where: { id: customerId },
       include: {
-        loans: true,
+        loans: {
+          orderBy: { createdAt: 'desc' },
+        },
       },
     });
 
@@ -38,29 +27,13 @@ export class ScoringService {
       where: { id: loanId },
     });
 
-    let bankLimit: number | null = null;
-    if (bankCode) {
-      try {
-        const eligibility = await this.bankAdaptersService.checkEligibility(
-          bankCode,
-          {
-            customerId: customer.id,
-            phoneNumber: customer.phoneNumber,
-            nuit: customer.nuit,
-          }
-        );
-        bankLimit = eligibility.eligible ? 200000 : 0;
-      } catch (error) {
-        this.logger.error(`Erro ao consultar banco: ${error.message}`);
-        bankLimit = 200000;
-      }
-    }
-
+    // Calcular fatores de scoring
     const factors = this.calculateFactors(customer, loan);
     const finalScore = this.calculateFinalScore(factors);
     const risk = this.calculateRisk(finalScore);
-    const decision = this.makeDecision(finalScore, loan.amount, bankLimit);
+    const decision = this.makeDecision(finalScore, loan.amount);
 
+    // Salvar resultado
     const scoringResult = await this.prisma.scoringResult.create({
       data: {
         customerId,
@@ -72,6 +45,7 @@ export class ScoringService {
       },
     });
 
+    // Atualizar empréstimo
     await this.prisma.loan.update({
       where: { id: loanId },
       data: {
@@ -81,26 +55,31 @@ export class ScoringService {
       },
     });
 
-    return {
-      ...scoringResult,
-      bankLimit: decision.bankLimit,
-      finalLimit: decision.finalLimit,
-    };
+    return scoringResult;
   }
 
   private calculateFactors(customer: any, loan: any): ScoringFactors {
+    // 1. Score base (novo cliente vs. existente)
     const baseScore = customer.loans.length > 0 ? 500 : 400;
+
+    // 2. Histórico de empréstimos
     const completedLoans = customer.loans.filter(l => l.status === 'COMPLETED').length;
     const historyScore = Math.min(completedLoans * 50, 150);
-    const amountRatio = loan.amount / 50000;
-    const amountScore = Math.max(0, 100 - amountRatio * 100);
+
+    // 3. Score baseado no valor solicitado (menor = melhor)
+    const amountRatio = loan.amount / 50000; // Normalizar para max
+    const amountScore = Math.round((1 - amountRatio) * 100);
+
+    // 4. Frequência de solicitações (não muito frequente)
     const recentLoans = customer.loans.filter(l => {
-      const daysSince = (new Date().getTime() - new Date(l.createdAt).getTime()) / (1000 * 60 * 60 * 24);
-      return daysSince <= 30;
+      const daysSince = (Date.now() - new Date(l.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+      return daysSince <= 90;
     }).length;
-    const frequencyScore = recentLoans > 2 ? 0 : 100;
+    const frequencyScore = recentLoans > 2 ? -50 : 50;
+
+    // 5. Histórico de pagamentos
     const overdueLoans = customer.loans.filter(l => l.status === 'OVERDUE' || l.status === 'DEFAULTED').length;
-    const paymentHistoryScore = Math.max(0, 100 - overdueLoans * 50);
+    const paymentHistoryScore = overdueLoans > 0 ? -100 : 100;
 
     return {
       baseScore,
@@ -112,9 +91,14 @@ export class ScoringService {
   }
 
   private calculateFinalScore(factors: ScoringFactors): number {
-    const { baseScore, historyScore, amountScore, frequencyScore, paymentHistoryScore } = factors;
-    const score = baseScore + historyScore + amountScore * 0.5 + frequencyScore * 0.5 + paymentHistoryScore * 0.8;
-    return Math.round(Math.min(850, Math.max(300, score)));
+    const total = factors.baseScore +
+                  factors.historyScore +
+                  factors.amountScore +
+                  factors.frequencyScore +
+                  factors.paymentHistoryScore;
+
+    // Normalizar para range 300-850
+    return Math.max(300, Math.min(850, total));
   }
 
   private calculateRisk(score: number): string {
@@ -125,41 +109,37 @@ export class ScoringService {
     return 'VERY_HIGH';
   }
 
-  private makeDecision(score: number, requestedAmount: number, bankLimit: number | null): ScoringDecision {
-    const scoringMaxAmount = this.calculateMaxAmount(score);
-    const effectiveBankLimit = bankLimit !== null ? bankLimit : Infinity;
-    const finalLimit = Math.min(scoringMaxAmount, effectiveBankLimit);
-
-    const approvalThreshold = 550;
+  private makeDecision(score: number, requestedAmount: number) {
+    const approvalThreshold = 600;
 
     if (score >= approvalThreshold) {
-      if (requestedAmount <= finalLimit) {
-        return {
-          decision: 'APPROVED',
-          maxAmount: finalLimit,
-          bankLimit: bankLimit !== null ? bankLimit : undefined,
-          finalLimit,
-        };
-      } else {
-        return {
-          decision: 'MANUAL_REVIEW',
-          maxAmount: finalLimit,
-          bankLimit: bankLimit !== null ? bankLimit : undefined,
-          finalLimit,
-        };
-      }
+      // Aprovado
+      const maxAmount = this.calculateMaxAmount(score);
+      return {
+        decision: 'APPROVED',
+        maxAmount: Math.max(requestedAmount, maxAmount),
+      };
+    } else if (score >= 500) {
+      // Revisão manual
+      return {
+        decision: 'MANUAL_REVIEW',
+        maxAmount: null,
+      };
     } else {
+      // Rejeitado
       return {
         decision: 'REJECTED',
-        maxAmount: 0,
+        maxAmount: null,
       };
     }
   }
 
   private calculateMaxAmount(score: number): number {
-    if (score < 550) return 0;
+    // Score 600-850 -> 5.000 a 50.000 MZN
+    const minAmount = 5000;
+    const maxAmount = 50000;
     const normalizedScore = (score - 600) / (850 - 600);
-    return Math.round(5000 + normalizedScore * 45000);
+    return Math.round(minAmount + (normalizedScore * (maxAmount - minAmount)));
   }
 
   async getCustomerScore(customerId: string) {

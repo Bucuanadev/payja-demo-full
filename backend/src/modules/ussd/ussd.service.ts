@@ -555,33 +555,21 @@ Desconto de 2% para liquidação antecipada (6+ meses)
 
       console.log('[USSD] Cliente encontrado:', customer.id);
 
-      // Registrar aceite dos termos
-      try {
-        await this.loansService.acceptTerms(customer.id, '1.0');
-        console.log('[USSD] Termos aceitos');
-      } catch (error) {
-        console.error('[USSD] Erro ao aceitar termos:', error);
-      }
-
       // Criar empréstimo
       console.log('[USSD] Criando emprestimo...');
       const loan = await this.loansService.createLoan({
         customerId: customer.id,
         amount,
         termMonths: termMonths || 1,
-        termDays: termDays,
         purpose,
         totalAmount,
         monthlyPayment,
-        bankCode,
-        bankName,
-        interestRate: interestRate || 15,
       });
       console.log('[USSD] Emprestimo criado:', loan.id);
 
       // Calcular scoring
       console.log('[USSD] Calculando scoring...');
-      const scoring = await this.scoringService.calculateScoring(customer.id, loan.id, bankCode);
+      const scoring = await this.scoringService.calculateScoring(customer.id, loan.id);
       console.log('[USSD] Scoring calculado:', scoring.id);
 
       let disbursementSuccess = false;

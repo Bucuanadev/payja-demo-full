@@ -55,18 +55,11 @@ export default function IntegrationsPage() {
   const testBankConnection = async (bankCode) => {
     setTestingConnection({ ...testingConnection, [bankCode]: true });
     try {
-      const response = await api.post(`/bank-adapters/test-connection/${bankCode}`);
-      
-      if (response.data.success) {
-        message.success(`Conexão com ${bankCode} estabelecida com sucesso!`);
-        if (response.data.data) {
-          console.log('Dados do banco:', response.data.data);
-        }
-      } else {
-        message.error(`Falha: ${response.data.message}`);
-      }
+      // Simular teste de conexão
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      message.success(`Conexão com ${bankCode} testada com sucesso!`);
     } catch (error) {
-      message.error(`Erro ao conectar com ${bankCode}: ${error.response?.data?.message || error.message}`);
+      message.error(`Falha ao conectar com ${bankCode}`);
     } finally {
       setTestingConnection({ ...testingConnection, [bankCode]: false });
     }
@@ -87,19 +80,12 @@ export default function IntegrationsPage() {
   const saveBankConfig = async (bankCode, values) => {
     setLoading(true);
     try {
-      const response = await api.post(`/bank-adapters/configure/${bankCode}`, {
-        apiUrl: values.apiUrl,
-        apiKey: values.apiKey,
-      });
-
-      if (response.data.success) {
-        localStorage.setItem(`bank_config_${bankCode}`, JSON.stringify(values));
-        message.success(response.data.message);
-      } else {
-        message.error(response.data.message);
-      }
+      // Em produção, salvar no backend
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      localStorage.setItem(`bank_config_${bankCode}`, JSON.stringify(values));
+      message.success(`Configuração do ${bankCode} salva com sucesso!`);
     } catch (error) {
-      message.error(`Erro ao salvar configuração: ${error.response?.data?.message || error.message}`);
+      message.error('Erro ao salvar configuração');
     } finally {
       setLoading(false);
     }
@@ -120,13 +106,7 @@ export default function IntegrationsPage() {
 
   const BankConfigForm = ({ bank }) => {
     const savedConfig = localStorage.getItem(`bank_config_${bank.code}`);
-    const initialValues = savedConfig ? JSON.parse(savedConfig) : 
-      bank.code === 'GHW' ? {
-        apiUrl: 'http://localhost:4500',
-        apiKey: 'banco-ghw-api-key-2025',
-        enabled: true,
-        timeout: 30000,
-      } : {};
+    const initialValues = savedConfig ? JSON.parse(savedConfig) : {};
 
     return (
       <Card
@@ -137,9 +117,6 @@ export default function IntegrationsPage() {
             <Tag color={bank.active ? 'success' : 'default'}>
               {bank.active ? 'Ativo' : 'Inativo'}
             </Tag>
-            {bank.configurable && (
-              <Tag color="blue">Configurável</Tag>
-            )}
           </Space>
         }
         extra={
@@ -208,42 +185,19 @@ export default function IntegrationsPage() {
           description={
             <div>
               <Paragraph>
-                <Text strong>Endpoints principais {bank.code === 'GHW' ? '(Banco GHW)' : ''}:</Text>
+                <Text strong>Endpoints principais:</Text>
               </Paragraph>
-              {bank.code === 'GHW' ? (
-                <ul>
-                  <li>
-                    <Text code>POST /api/validacao/verificar</Text> - Verificar elegibilidade
-                  </li>
-                  <li>
-                    <Text code>POST /api/capacidade/consultar</Text> - Consultar capacidade financeira
-                  </li>
-                  <li>
-                    <Text code>POST /api/desembolso/executar</Text> - Executar desembolso
-                  </li>
-                  <li>
-                    <Text code>POST /api/emprestimos/consultar</Text> - Consultar empréstimos
-                  </li>
-                  <li>
-                    <Text code>POST /api/webhooks/pagamento</Text> - Notificar pagamento
-                  </li>
-                  <li>
-                    <Text code>GET /api/health</Text> - Status do sistema
-                  </li>
-                </ul>
-              ) : (
-                <ul>
-                  <li>
-                    <Text code>POST /v1/eligibility/check</Text> - Verificar elegibilidade
-                  </li>
-                  <li>
-                    <Text code>POST /v1/loans/disburse</Text> - Solicitar desembolso
-                  </li>
-                  <li>
-                    <Text code>GET /v1/employees/public-sector</Text> - Listar funcionários
-                  </li>
-                </ul>
-              )}
+              <ul>
+                <li>
+                  <Text code>POST /v1/eligibility/check</Text> - Verificar elegibilidade
+                </li>
+                <li>
+                  <Text code>POST /v1/loans/disburse</Text> - Solicitar desembolso
+                </li>
+                <li>
+                  <Text code>GET /v1/employees/public-sector</Text> - Listar funcionários
+                </li>
+              </ul>
             </div>
           }
           type="info"

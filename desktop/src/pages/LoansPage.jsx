@@ -58,16 +58,6 @@ function LoansPage() {
       key: 'customer',
     },
     {
-      title: 'Canal',
-      dataIndex: 'channel',
-      key: 'channel',
-      render: (channel) => (
-        <Tag color={channel === 'MOVITEL' ? 'blue' : 'green'}>
-          {channel || 'APP'}
-        </Tag>
-      ),
-    },
-    {
       title: 'Valor',
       dataIndex: 'amount',
       key: 'amount',

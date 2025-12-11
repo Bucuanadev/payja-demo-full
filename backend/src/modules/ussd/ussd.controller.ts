@@ -11,32 +11,16 @@ export class UssdController {
     @Body('phoneNumber') phoneNumber: string,
     @Body('text') text: string,
   ) {
-    try {
-      return await this.ussdService.handleUssdRequest({
-        sessionId,
-        phoneNumber,
-        text,
-      });
-    } catch (error) {
-      console.error('Erro USSD:', error);
-      return {
-        message: `Erro: ${error.message}`,
-        continueSession: false,
-      };
-    }
+    return this.ussdService.handleUssdRequest({
+      sessionId,
+      phoneNumber,
+      text,
+    });
   }
 
   @Post('simulate')
   async simulateUssd(@Body() body: any) {
-    try {
-      // Endpoint para simular USSD no desktop
-      return await this.ussdService.handleUssdRequest(body);
-    } catch (error) {
-      console.error('Erro simulação USSD:', error);
-      return {
-        message: `Erro ao processar: ${error.message}`,
-        continueSession: false,
-      };
-    }
+    // Endpoint para simular USSD no desktop
+    return this.ussdService.handleUssdRequest(body);
   }
 }

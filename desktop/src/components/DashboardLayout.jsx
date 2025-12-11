@@ -5,14 +5,10 @@ import {
   DollarOutlined,
   UserOutlined,
   MobileOutlined,
-  MessageOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   ApiOutlined,
-  SettingOutlined,
-  ExperimentOutlined,
-  CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
@@ -48,34 +44,9 @@ function DashboardLayout({ children }) {
       label: 'Simulador USSD',
     },
     {
-      key: '/sms-simulator',
-      icon: <MessageOutlined />,
-      label: 'Simulador SMS',
-    },
-    {
-      key: '/cross-validation',
-      icon: <CheckCircleOutlined />,
-      label: 'Validação Cruzada',
-    },
-    {
       key: '/integrations',
       icon: <ApiOutlined />,
       label: 'Integrações',
-    },
-    {
-      key: '/bank-partners',
-      icon: <ApiOutlined />,
-      label: 'Bancos Parceiros',
-    },
-    {
-      key: '/mock-control',
-      icon: <ExperimentOutlined />,
-      label: 'Mock Control',
-    },
-    {
-      key: '/settings',
-      icon: <SettingOutlined />,
-      label: 'Definições',
     },
   ];
 

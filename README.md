@@ -1,435 +1,207 @@
-# PayJA - Sistema de Microcrédito via USSD
+# PayJA - Plataforma de Microcrédito Digital
 
-Sistema completo de microcrédito para funcionários públicos em Moçambique, com integração USSD Movitel, scoring de crédito inteligente e gestão de empréstimos.
+Sistema completo de microcrédito digital integrado com operadoras móveis e bancos parceiros.
 
-## 🚀 Tecnologias
+## 🚀 Visão Geral
 
-### Backend
-- **NestJS** 10.3.0
-- **Prisma** 5.8.0 (SQLite)
-- **TypeScript** 5.1.3
-- **Passport JWT**
-- **Class Validator**
+O PayJA é uma plataforma de microcrédito que permite aos clientes solicitarem empréstimos através de diferentes canais (web, mobile, USSD), com análise de crédito automatizada e integração com bancos parceiros para desembolso.
 
-### Frontend
-- **React** 18.2.0
-- **Vite** 5.4.21
-- **Ant Design** 5.13.0
-- **Zustand**
-- **Axios**
+## 📦 Arquitetura do Sistema
 
-## 📁 Estrutura
+O projeto é composto por 5 serviços independentes gerenciados via PM2:
+
+### Serviços Principais
+
+| Serviço | Porta | Descrição |
+|---------|-------|-----------|
+| **PayJA Backend** | 3000 | API principal (NestJS + Prisma + SQLite) |
+| **Banco Mock Backend** | 4000 | Simulador de API bancária |
+| **Banco Mock Frontend** | 4100 | Interface administrativa do banco |
+| **PayJA Desktop** | 5173 | Aplicação Electron para gestão |
+| **USSD Simulator** | 3001 | Simulador USSD standalone |
+
+## 🛠️ Tecnologias
+
+- **Backend**: NestJS, TypeScript, Prisma ORM, SQLite
+- **Frontend**: React, Vite, TailwindCSS
+- **Desktop**: Electron
+- **Process Manager**: PM2
+- **APIs**: RESTful, Webhooks
+
+## ⚡ Início Rápido
+
+### Pré-requisitos
+
+- Node.js 18+
+- npm ou yarn
+- PM2 (instalado globalmente)
+
+### Instalação
+
+```powershell
+# Instalar PM2 globalmente
+npm install -g pm2
+
+# Instalar dependências do backend
+cd backend
+npm install
+
+# Compilar backend
+npm run build
+
+# Instalar dependências do banco-mock
+cd ../banco-mock/backend
+npm install
+
+cd ../frontend
+npm install
+
+# Instalar dependências do desktop
+cd ../../desktop
+npm install
+
+# Instalar dependências do USSD simulator (opcional)
+cd ../../ussd-simulator-standalone
+npm install
+```
+
+### Iniciar Todos os Serviços
+
+```powershell
+# Backend PayJA (porta 3000)
+pm2 start "node dist/src/main.js" --name payja-backend --cwd "C:\caminho\para\payja-demo\backend"
+
+# Banco Mock Backend (porta 4000)
+pm2 start "npm start" --name banco-mock --cwd "C:\caminho\para\payja-demo\banco-mock\backend"
+
+# Banco Mock Frontend (porta 4100)
+pm2 start start-pm2.js --name banco-mock-frontend --cwd "C:\caminho\para\payja-demo\banco-mock\frontend"
+
+# PayJA Desktop (porta 5173)
+pm2 start start-pm2.cjs --name payja-desktop --cwd "C:\caminho\para\payja-demo\desktop"
+
+# USSD Simulator (porta 3001) - Opcional
+pm2 start start-pm2.cjs --name ussd-simulator --cwd "C:\caminho\para\ussd-simulator-standalone"
+```
+
+### Gerenciar Serviços
+
+```powershell
+# Ver status de todos os serviços
+pm2 list
+
+# Verificar logs
+pm2 logs [nome-do-servico]
+
+# Reiniciar todos os serviços
+pm2 restart all
+
+# Parar todos os serviços
+pm2 stop all
+
+# Remover serviço
+pm2 delete [nome-do-servico]
+```
+
+## 📚 Estrutura do Projeto
 
 ```
 payja-demo/
-├── backend/           # API NestJS + Prisma
-│   ├── src/modules/
-│   │   ├── auth/             # Autenticação JWT
-│   │   ├── ussd-movitel/     # Integração USSD
-│   │   ├── scoring/          # Score de crédito
-│   │   ├── loans/            # Empréstimos
-│   │   ├── sms/              # SMS Service
-│   │   ├── admin/            # Dashboard
-│   │   ├── bank-adapters/    # Bancos
-│   │   └── mobile-operator-adapters/
-│   └── prisma/
+├── backend/                    # API principal NestJS
+│   ├── prisma/                # Schema e migrations
+│   ├── src/
+│   │   ├── modules/
+│   │   │   ├── auth/         # Autenticação
+│   │   │   ├── loans/        # Gestão de empréstimos
+│   │   │   ├── scoring/      # Análise de crédito
+│   │   │   ├── decision/     # Motor de decisão
+│   │   │   └── ...
+│   │   └── main.ts
+│   └── package.json
 │
-└── desktop/           # React + Vite
-    └── src/
-        ├── pages/
-        ├── components/
-        └── services/
+├── banco-mock/
+│   ├── backend/              # Simulador de API bancária
+│   └── frontend/             # Interface administrativa
+│
+├── desktop/                   # Aplicação Electron
+│   ├── src/
+│   │   ├── pages/           # Páginas da aplicação
+│   │   └── components/      # Componentes React
+│   └── start-pm2.cjs        # Wrapper PM2
+│
+└── simulador/                 # Simulador USSD (legado)
 ```
 
-## 🎯 Funcionalidades
+## 🔌 APIs Principais
 
-### USSD Movitel
-- Registro via *123#
-- Simulação de empréstimos
-- Menu interativo
+### Backend PayJA (porta 3000)
 
-### Scoring (300-850)
-- Análise de histórico
-- Avaliação de salário
-- Categorização de risco
+- `POST /auth/login` - Autenticação
+- `POST /loans/apply` - Solicitar empréstimo
+- `GET /loans` - Listar empréstimos
+- `GET /customers` - Listar clientes
+- `POST /scoring/analyze` - Análise de crédito
 
-### Empréstimos
-- Cálculo automático
-- Comissões (3%+3%+8%)
-- Status completo
-- Histórico
+### Banco Mock (porta 4000)
 
-### Bancos
-- Letsego
-- Millennium BIM
-- BCI
-- Standard Bank
-- Emola
+- `POST /api/accounts/validate` - Validar conta bancária
+- `POST /api/disbursements` - Efetuar desembolso
+- `GET /api/disbursements/:id` - Consultar status
+- `POST /webhook/notifications` - Receber notificações
 
-### Dashboard
-- Estatísticas em tempo real
-- Gestão de aprovações
-- Logs de auditoria
+## 🔐 Variáveis de Ambiente
 
-## 🔧 Instalação
+### Backend (.env)
 
-### 1. Dependências
-
-```powershell
-# Backend
-cd backend
-npm install
-
-# Backend do Banco-Mock
-cd banco-mock/backend
-npm install
-
-# Frontend do Banco-Mock
-cd banco-mock/frontend
-npm install
-
-# Desktop PayJA
-cd desktop
-npm install
-```
-
-### 2. Banco de Dados
-
-```powershell
-cd backend
-npx prisma generate
-npx prisma migrate deploy
-```
-
-### 3. Executar Services
-
-**Terminal 1 - PayJA Backend (porta 3000):**
-```powershell
-cd backend
-npm run start:dev
-```
-
-**Terminal 2 - Banco-Mock Backend (porta 4000):**
-```powershell
-cd banco-mock/backend
-node src/index.js
-```
-
-**Terminal 3 - Banco-Mock Frontend (porta 4100):**
-```powershell
-cd banco-mock/frontend
-npm run dev -- --host --port 4100
-```
-
-**Terminal 4 - PayJA Desktop (porta 5173):**
-```powershell
-cd desktop
-npm run dev
-```
-
-## 🌐 Acessar
-
-- **PayJA Dashboard**: http://localhost:5173
-- **Banco-Mock Admin**: http://localhost:4100
-- **PayJA API**: http://localhost:3000/api/v1
-- **Banco-Mock API**: http://localhost:4000/api
-
-## 💡 Fluxo de Uso
-
-### 1. Registrar Cliente via USSD (*899#)
-```
-*899# → Nome → BI → NUIT → Confirmar
-```
-
-Sistema:
-1. Busca dados do cliente no Banco-Mock
-2. Valida NUIT + Nome + BI
-3. Compara dados com banco
-4. Se aprovado: registra com limite do banco
-5. Envia SMS com aprovação e limite
-
-### 2. Solicitar Empréstimo via USSD (*898#)
-```
-*898# → Valor → Propósito → Confirmar
-```
-
-Sistema:
-1. Valida se cliente é registrado
-2. Verifica creditLimit (do banco)
-3. Se aprovado: chama Banco para desembolso
-4. Envia SMS ao cliente com referência
-5. Notifica PayJA com webhook
-
-## 🏦 Integração com Bancos
-
-### Banco-Mock (Desenvolvimento)
-- Simula banco GHW
-- 5 clientes fictícios pré-carregados
-- Endpoints de elegibilidade, capacidade e desembolso
-
-### Configuração Dinâmica
-Todos os bancos são configuráveis via tabela `bank_partners`:
-
-```sql
-SELECT code, name, apiUrl, active FROM bank_partners;
-```
-
-Bancos ativos encontram-se em:
-- Dashboard: Integrations → Bank Partners
-- API: GET /api/v1/bank-partners
-
-### Fluxo de Validação
-
-Durante registro, PayJA:
-1. Busca lista de bancos ativos
-2. Loop: para cada banco
-   - Chama POST /api/validacao/verificar
-   - Compara dados do cliente
-   - Se score >= 70%: aprova e usa banco
-3. Registra customer com creditLimit do banco
-4. Define salaryBank para referência
-
-## 🔌 APIs do Banco-Mock
-
-### POST /api/validacao/verificar
-Verifica elegibilidade do cliente
-
-```json
-Request:
-{
-  "nuit": "100234567",
-  "nome": "João Pedro da Silva",
-  "bi": "1234567890123N"
-}
-
-Response (aprovado):
-{
-  "sucesso": true,
-  "elegivel": true,
-  "limite_aprovado": 50000,
-  "cliente": {
-    "nuit": "100234567",
-    "nome": "João Pedro da Silva",
-    "score_credito": 750,
-    "renda_mensal": 35000
-  }
-}
-```
-
-### POST /api/desembolso/executar
-Executa desembolso para cliente
-
-```json
-Request:
-{
-  "nuit": "100234567",
-  "valor": 5000,
-  "numero_emola": "82<number>",
-  "referencia_payja": "PAYJA-20251209-001"
-}
-
-Response:
-{
-  "sucesso": true,
-  "id_transacao": "uuid",
-  "status": "PROCESSADO",
-  "valor_desembolsado": 5000
-}
-```
-
-### GET /api/health
-Health check do banco
-
-```json
-Response:
-{
-  "status": "online",
-  "timestamp": "2025-12-09T08:00:00Z"
-}
-```
-
-## 📊 Clientes Fictícios (Banco-Mock)
-
-| NUIT | Nome | Score | Limite |
-|------|------|-------|--------|
-| 100234567 | João Pedro da Silva | 750 | 50000 |
-| 100345678 | Maria Santos Machado | 680 | 30000 |
-| 100456789 | Carlos Alberto Mondlane | 820 | 80000 |
-| 100567890 | Ana Isabel Cossa | 590 | 15000 |
-| 100678901 | Pedro Manuel Sitoe | 710 | 60000 |
-
-## 🔐 Segurança
-
-- API Key para Banco-Mock: `banco-ghw-api-key-2025`
-- JWT para PayJA API
-- Validação de dados em múltiplas camadas
-- Logs de auditoria para todas operações
-
-## 📝 Variáveis de Ambiente
-
-**Backend (.env):**
-```
+```env
 DATABASE_URL="file:./dev.db"
-JWT_SECRET="seu-secret-seguro"
-SMS_API_KEY="sua-chave"
+JWT_SECRET=seu-secret-aqui
+PORT=3000
+BANCO_MOCK_URL=http://localhost:4000
 ```
 
-**Banco-Mock (.env):**
-```
-PORT=4000
-BANCO_NOME="Banco GHW"
-API_KEY=banco-ghw-api-key-2025
-PAYJA_API_URL=http://localhost:3000/api/v1
-```
+### USSD Simulator (.env)
 
-## 🐛 Troubleshooting
-
-### Porta 4000 em uso
-```powershell
-Get-Process -Id (Get-NetTCPConnection -LocalPort 4000).OwningProcess
-Stop-Process -Id <PID> -Force
+```env
+PORT=3001
+PAYJA_API_URL=http://localhost:3000
+DATABASE_PATH=./data/ussd.db
 ```
 
-### Prisma Migration Error
-```powershell
-cd backend
-npx prisma migrate reset
-npx prisma db seed
-```
-
-### USSD não funciona
-- Verificar PayJA Backend rodando em 3000
-- Verificar Banco-Mock Backend rodando em 4000
-- Verificar API Key: `banco-ghw-api-key-2025`
-- Checar logs: http://localhost:5173 → Integrações
-
-## 📚 Documentação Adicional
-
-- [Estrutura do Projeto](./ESTRUTURA.md)
-- [Guia de Integração de APIs](./INTEGRACAO_APIS.md)
-- [Integração com Bancos Universais](./INTEGRACAO_UNIVERSAL.md)
-- [Início Rápido](./INICIO_RAPIDO.md)
-
-## 👥 Contribuições
-
-Reporte bugs via [Issues](/issues) ou contribua com [Pull Requests](/pulls).
-
-## 📄 Licença
-
-Proprietary - PayJA Corporation
-cd backend
-npm run start:dev
-```
-http://localhost:3000
-
-**Frontend:**
-```powershell
-cd desktop
-npm run dev
-```
-http://localhost:5173
-
-## 🔐 Credenciais
-
-**Admin:**
-- Email: `admin@payja.co.mz`
-- Senha: `Admin@123`
-
-**Cliente:**
-- Telefone: `+258840001234`
-- NUIT: `123456789`
-
-## 📡 API Principal
-
-```
-POST   /api/v1/auth/login
-POST   /api/v1/auth/register
-POST   /api/v1/movitel/ussd/callback
-GET    /api/v1/loans
-POST   /api/v1/loans/:id/disburse
-GET    /api/v1/scoring/customer/:customerId
-GET    /api/v1/admin/dashboard
-```
-
-## 🗄️ Modelos
-
-```prisma
-model Customer {
-  id           String
-  phoneNumber  String @unique
-  nuit         String @unique
-  name         String
-  loans        Loan[]
-}
-
-model Loan {
-  id             String
-  amount         Float
-  interestRate   Float
-  status         String
-  totalAmount    Float
-}
-
-model ScoringResult {
-  id          String
-  finalScore  Int    // 300-850
-  risk        String
-}
-```
-
-## 📊 Fluxo
-
-1. Cliente digita *123#
-2. Registro USSD
-3. Validação de dados
-4. Scoring automático
-5. Oferta baseada no score
-6. Validação bancária
-7. Desembolso Emola
-8. Empréstimo ativo
-
-## 🛠️ Scripts
+## 🧪 Testes
 
 ```powershell
 # Backend
-npm run start:dev
-npm run build
-npm run test
+cd backend
+npm test
 
 # Frontend
-npm run dev
-npm run build
-npm run preview
+cd banco-mock/frontend
+npm test
 ```
 
-## 📝 Documentação
+## 📖 Documentação Adicional
 
-- `ESTRUTURA.md` - Detalhes técnicos
-- `INICIO_RAPIDO.md` - Guia rápido
+- [Integração com Bancos](./docs/INTEGRACAO_BANCOS.md)
+- [Fluxo de Crédito](./docs/FLUXO_CREDITO.md)
+- [APIs Webhook](./docs/WEBHOOKS.md)
 
-## 🔒 Segurança
+## 🤝 Contribuição
 
-- JWT Authentication
-- Validação completa
-- Sanitização de dados
-- Logs de auditoria
+1. Fork o projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/NovaFeature`)
+3. Commit suas mudanças (`git commit -m 'Adiciona nova feature'`)
+4. Push para a branch (`git push origin feature/NovaFeature`)
+5. Abra um Pull Request
 
-## 📈 Status
+## 📝 Licença
 
-**Versão:** 1.0.0  
-**Status:** Produção  
-**Atualização:** Dezembro 2025
+Este projeto é proprietário e confidencial.
 
-### Implementado
-✅ Autenticação  
-✅ USSD Movitel  
-✅ Scoring  
-✅ Empréstimos  
-✅ SMS  
-✅ Bancos  
-✅ Dashboard  
-✅ Simuladores  
+## 👥 Suporte
+
+Para questões ou suporte, contacte a equipe de desenvolvimento.
 
 ---
 
-**PayJA** - Crédito rápido e justo 🇲🇿
+**Desenvolvido com ❤️ pela equipe Bucuanadev**

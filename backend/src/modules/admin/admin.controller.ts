@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, Body, Query, UseGuards, Post } from '@nestjs/common';
+import { Controller, Get, Patch, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -30,10 +30,5 @@ export class AdminController {
   @Get('audit-logs')
   async getAuditLogs(@Query() filters: any) {
     return this.adminService.getAuditLogs(filters);
-  }
-
-  @Post('reset-test-data')
-  async resetTestData() {
-    return this.adminService.resetTestData();
   }
 }

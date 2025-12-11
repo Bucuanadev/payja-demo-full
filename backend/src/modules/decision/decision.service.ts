@@ -26,24 +26,7 @@ export class DecisionService {
       throw new Error('Empréstimo ou scoring não encontrado');
     }
 
-    // APROVAÇÃO AUTOMÁTICA para Funcionário Público
-    if (loan.customer.profession === 'Funcionario Publico') {
-      const decision = await this.evaluatePublicEmployee(loan, scoring);
-      
-      // Atualizar status
-      await this.prisma.loan.update({
-        where: { id: loanId },
-        data: {
-          status: decision.approved ? 'APPROVED' : 'REJECTED',
-          rejectedReason: decision.approved ? null : decision.reason,
-          approvedAt: decision.approved ? new Date() : null,
-        },
-      });
-
-      return decision;
-    }
-
-    // Regras de decisão padrão
+    // Regras de decisão
     const decision = this.evaluateDecision(scoring, loan);
 
     // Atualizar status do empréstimo
@@ -52,54 +35,10 @@ export class DecisionService {
       data: {
         status: decision.approved ? 'APPROVED' : 'REJECTED',
         rejectedReason: decision.approved ? null : decision.reason,
-        approvedAt: decision.approved ? new Date() : null,
       },
     });
 
     return decision;
-  }
-
-  private async evaluatePublicEmployee(loan: any, scoring: any): Promise<DecisionResult> {
-    const customer = loan.customer;
-    
-    // Verificar se tem salário cadastrado
-    const salary = customer.salary || 15000; // Salário mínimo padrão se não informado
-    
-    // Verificar se tem dívidas ativas
-    const activeLoans = await this.prisma.loan.count({
-      where: {
-        customerId: customer.id,
-        status: { in: ['ACTIVE', 'APPROVED', 'DISBURSED'] },
-      },
-    });
-
-    // Se tem dívida ativa, rejeitar
-    if (activeLoans > 0) {
-      return {
-        approved: false,
-        reason: 'Cliente possui empréstimo ativo. Quite sua dívida antes de solicitar novo empréstimo.',
-      };
-    }
-
-    // Limite: dobro do salário
-    const maxAmount = salary * 2;
-
-    // Se valor solicitado excede o dobro do salário, rejeitar
-    if (loan.amount > maxAmount) {
-      return {
-        approved: false,
-        reason: `Valor solicitado (${loan.amount} MZN) excede o limite aprovado (${maxAmount} MZN - 2x salário)`,
-        maxAmount: maxAmount,
-      };
-    }
-
-    // APROVADO AUTOMATICAMENTE
-    return {
-      approved: true,
-      reason: 'Funcionário Público - Aprovação Automática',
-      maxAmount: maxAmount,
-      recommendedTerms: [3, 6, 12],
-    };
   }
 
   private evaluateDecision(scoring: any, loan: any): DecisionResult {

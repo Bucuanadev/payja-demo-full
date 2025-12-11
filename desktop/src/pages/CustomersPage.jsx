@@ -47,16 +47,6 @@ function CustomersPage() {
       render: (name) => name || 'Não informado',
     },
     {
-      title: 'Canal',
-      dataIndex: 'channel',
-      key: 'channel',
-      render: (channel) => (
-        <Tag color={channel === 'MOVITEL' ? 'blue' : 'green'}>
-          {channel || 'APP'}
-        </Tag>
-      ),
-    },
-    {
       title: 'Status',
       key: 'status',
       render: (_, record) => (

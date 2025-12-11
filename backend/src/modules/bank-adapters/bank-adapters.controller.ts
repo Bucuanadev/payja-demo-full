@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Param } from '@nestjs/common';
-import { BankAdaptersService } from './bank-adapters-v2.service';
+import { BankAdaptersService } from './bank-adapters.service';
 
 @Controller('bank-adapters')
 export class BankAdaptersController {
@@ -39,18 +39,19 @@ export class BankAdaptersController {
   }
 
   /**
+   * Sincronizar funcionários públicos de um banco específico
+   */
+  @Post('sync-employees/:bankCode')
+  async syncEmployees(@Param('bankCode') bankCode: string) {
+    const result = await this.bankAdaptersService.syncPublicEmployees(bankCode);
+    return result;
+  }
+
+  /**
    * Listar bancos parceiros disponíveis
    */
   @Get('available-banks')
   async getAvailableBanks() {
     return this.bankAdaptersService.getAvailableBanks();
-  }
-
-  /**
-   * Testar conexão com um banco
-   */
-  @Post('test-connection/:bankCode')
-  async testConnection(@Param('bankCode') bankCode: string) {
-    return await this.bankAdaptersService.testConnection(bankCode);
   }
 }

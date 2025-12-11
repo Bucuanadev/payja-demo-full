@@ -1,284 +1,407 @@
-# 🏦 Banco Mock - Sistema Bancário Simulado
+# Banco Mock - Simulador de API Bancária
 
-Sistema bancário mock para integração com PayJA. Simula um banco real com APIs de validação, elegibilidade e desembolso de empréstimos.
+Simulador completo de API bancária para desenvolvimento e testes do PayJA.
 
-## 🚀 Instalação
+## 📋 Visão Geral
 
-```bash
+O Banco Mock simula as operações de um banco real, incluindo validação de contas, processamento de desembolsos e envio de webhooks.
+
+## 🚀 Componentes
+
+### Backend (Porta 4000)
+
+API REST simulando operações bancárias:
+- Validação de contas
+- Processamento de desembolsos
+- Webhooks assíncronos
+- Banco de dados em memória
+
+### Frontend (Porta 4100)
+
+Interface administrativa web:
+- Dashboard de transações
+- Gestão de contas bancárias
+- Visualização de desembolsos
+- Logs de webhooks
+
+## 🔧 Configuração
+
+### Backend
+
+```powershell
 cd banco-mock/backend
 npm install
+npm start
 ```
 
-## ▶️ Executar
+O servidor inicia em `http://localhost:4000` e se liga a `127.0.0.1` (localhost apenas).
 
-```bash
+### Frontend
+
+```powershell
+cd banco-mock/frontend
+npm install
+
+# Desenvolvimento
 npm run dev
+
+# Ou via PM2
+pm2 start start-pm2.js --name banco-mock-frontend
 ```
 
-O servidor iniciará em: **http://localhost:4000**
+A interface fica disponível em `http://localhost:4100`.
 
 ## 📡 APIs Disponíveis
 
-### 1. **Validação de Elegibilidade**
+### 1. Validar Conta Bancária
 
-**Endpoint usado pelo PayJA para verificar se cliente é elegível**
+**POST** `/api/accounts/validate`
 
-```
-POST /api/validacao/verificar
-```
+Verifica se uma conta existe e está ativa.
 
-**Request:**
 ```json
+// Request
 {
-  "nuit": "100234567",
-  "nome": "João Pedro da Silva",
-  "telefone": "258841234567",
-  "bi": "1234567890123N",
-  "valor_solicitado": 5000
+  "accountNumber": "0123456789",
+  "holderName": "João Silva"
+}
+
+// Response 200 OK
+{
+  "valid": true,
+  "accountNumber": "0123456789",
+  "holderName": "João Silva",
+  "accountType": "CHECKING",
+  "status": "ACTIVE"
 }
 ```
 
-**Response (Aprovado):**
+### 2. Criar Desembolso
+
+**POST** `/api/disbursements`
+
+Solicita um desembolso para uma conta bancária.
+
 ```json
+// Request
 {
-  "sucesso": true,
-  "elegivel": true,
-  "cliente": {
-    "nuit": "100234567",
-    "nome": "João Pedro da Silva",
-    "telefone": "258841234567",
-    "numero_conta": "0001000000001",
-    "score_credito": 750,
-    "renda_mensal": 35000
-  },
-  "limite_aprovado": 50000,
-  "score_comparacao": 100,
-  "detalhes_comparacao": [...]
+  "loanId": "loan-123",
+  "accountNumber": "0123456789",
+  "amount": 5000.00,
+  "reference": "LOAN-001",
+  "webhookUrl": "http://localhost:3000/webhook/bank-notification"
+}
+
+// Response 202 Accepted
+{
+  "disbursementId": "disb-abc123",
+  "status": "PROCESSING",
+  "estimatedTime": "2-5 minutes",
+  "createdAt": "2025-12-11T10:00:00Z"
 }
 ```
 
-**Response (Rejeitado):**
+### 3. Consultar Desembolso
+
+**GET** `/api/disbursements/:id`
+
+Verifica o status de um desembolso.
+
 ```json
+// Response 200 OK
 {
-  "sucesso": true,
-  "elegivel": false,
-  "motivo": "Cliente não possui conta neste banco",
-  "codigo": "CLIENTE_NAO_ENCONTRADO"
+  "id": "disb-abc123",
+  "loanId": "loan-123",
+  "accountNumber": "0123456789",
+  "amount": 5000.00,
+  "status": "COMPLETED",
+  "processedAt": "2025-12-11T10:05:00Z"
 }
 ```
 
----
+### 4. Listar Desembolsos
 
-### 2. **Desembolso de Empréstimo**
+**GET** `/api/disbursements`
 
-**Endpoint para PayJA solicitar transferência do valor aprovado**
+Lista todos os desembolsos com filtros.
 
-```
-POST /api/desembolso/executar
-```
+**Query Parameters:**
+- `status` - Filtrar por status (PROCESSING, COMPLETED, FAILED)
+- `page` - Página (default: 1)
+- `limit` - Itens por página (default: 10)
 
-**Request:**
+### 5. Criar Conta Bancária
+
+**POST** `/api/accounts`
+
+Cria uma nova conta bancária (apenas para testes).
+
 ```json
+// Request
 {
-  "nuit": "100234567",
-  "valor": 10000,
-  "numero_emola": "258841234567",
-  "referencia_payja": "LOAN-12345",
-  "descricao": "Desembolso empréstimo pessoal"
+  "accountNumber": "9876543210",
+  "holderName": "Maria Santos",
+  "accountType": "SAVINGS"
+}
+
+// Response 201 Created
+{
+  "id": "acc-123",
+  "accountNumber": "9876543210",
+  "holderName": "Maria Santos",
+  "accountType": "SAVINGS",
+  "status": "ACTIVE"
 }
 ```
 
-**Response:**
+## 🔔 Webhooks
+
+### Notificação de Desembolso
+
+O Banco Mock envia webhooks quando o desembolso é processado.
+
+**Payload:**
 ```json
 {
-  "sucesso": true,
-  "mensagem": "Desembolso iniciado com sucesso",
-  "desembolso": {
-    "id": "uuid-xxx",
-    "valor": 10000,
-    "numero_emola": "258841234567",
-    "status": "PROCESSANDO",
-    "tempo_estimado": "2-5 segundos"
-  },
-  "cliente": {
-    "nome": "João Pedro da Silva",
-    "saldo_anterior": 25000,
-    "saldo_novo": 15000
-  }
+  "event": "disbursement.completed",
+  "disbursementId": "disb-abc123",
+  "loanId": "loan-123",
+  "amount": 5000.00,
+  "accountNumber": "0123456789",
+  "status": "COMPLETED",
+  "timestamp": "2025-12-11T10:05:00Z",
+  "signature": "sha256-hash-signature"
 }
 ```
 
----
+**Eventos:**
+- `disbursement.processing` - Desembolso iniciado
+- `disbursement.completed` - Desembolso concluído
+- `disbursement.failed` - Desembolso falhou
 
-### 3. **Consultar Status do Desembolso**
+### Verificação de Assinatura
 
-```
-GET /api/desembolso/status/:id
-```
+```javascript
+const crypto = require('crypto');
 
----
-
-### 4. **Simular Desembolso**
-
-**Verificar se desembolso pode ser executado sem executar**
-
-```
-POST /api/desembolso/simular
-```
-
-**Request:**
-```json
-{
-  "nuit": "100234567",
-  "valor": 10000
+function verifySignature(payload, signature, secret) {
+  const hash = crypto
+    .createHmac('sha256', secret)
+    .update(JSON.stringify(payload))
+    .digest('hex');
+  
+  return hash === signature;
 }
 ```
 
----
+## 🎨 Interface Frontend
 
-### 5. **Gerenciar Clientes**
+### Dashboard Principal
 
-```
-GET  /api/clientes              # Listar todos
-GET  /api/clientes/nuit/:nuit   # Buscar por NUIT
-GET  /api/clientes/:id          # Buscar por ID
-POST /api/clientes              # Criar novo
-PATCH /api/clientes/:id         # Atualizar
-```
+- **Total de contas**: Número de contas cadastradas
+- **Desembolsos hoje**: Quantidade processada hoje
+- **Volume**: Valor total desembolsado
+- **Taxa de sucesso**: % de desembolsos bem-sucedidos
 
----
+### Gestão de Contas
 
-### 6. **Históricos**
+- Criar novas contas
+- Editar informações
+- Ativar/desativar contas
+- Ver histórico de transações
 
-```
-GET /api/validacao/historico    # Todas validações
-GET /api/desembolso/historico   # Todos desembolsos
-```
+### Desembolsos
 
----
+- Lista de todos os desembolsos
+- Filtros por status e data
+- Detalhes de cada operação
+- Logs de webhooks enviados
 
-## 📊 Clientes Fictícios (Seed Data)
+### Webhooks
 
-O sistema vem com 5 clientes pré-cadastrados:
+- Lista de webhooks enviados
+- Status de entrega
+- Payload completo
+- Retry manual
 
-| NUIT      | Nome                    | Score | Limite    | Renda Mensal |
-|-----------|-------------------------|-------|-----------|--------------|
-| 100234567 | João Pedro da Silva     | 750   | 50.000 MZN | 35.000 MZN  |
-| 100345678 | Maria Santos Machado    | 680   | 30.000 MZN | 25.000 MZN  |
-| 100456789 | Carlos Alberto Mondlane | 820   | 80.000 MZN | 55.000 MZN  |
-| 100567890 | Ana Isabel Cossa        | 590   | 15.000 MZN | 18.000 MZN  |
-| 100678901 | Pedro Manuel Sitoe      | 710   | 60.000 MZN | 42.000 MZN  |
+## 🧪 Cenários de Teste
 
----
+### Teste de Sucesso
 
-## 🔄 Fluxo de Integração com PayJA
-
-```
-1. Cliente registra no USSD (*123#)
-   ↓
-2. PayJA chama: POST /api/validacao/verificar
-   ← Banco responde: elegível + limite
-   ↓
-3. PayJA aprova empréstimo
-   ↓
-4. PayJA chama: POST /api/desembolso/executar
-   ← Banco processa (2-5 seg)
-   ↓
-5. Banco debita conta e transfere para Emola
-   ↓
-6. Cliente recebe dinheiro no telemóvel
+```bash
+curl -X POST http://localhost:4000/api/disbursements \
+  -H "Content-Type: application/json" \
+  -d '{
+    "loanId": "loan-123",
+    "accountNumber": "0123456789",
+    "amount": 5000,
+    "webhookUrl": "http://localhost:3000/webhook/bank-notification"
+  }'
 ```
 
----
+### Teste de Conta Inválida
 
-## 🎯 Critérios de Aprovação
+```bash
+curl -X POST http://localhost:4000/api/accounts/validate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "accountNumber": "9999999999",
+    "holderName": "Conta Inexistente"
+  }'
+```
 
-O banco avalia:
+### Teste de Webhook
 
-1. **Score de Comparação** (mínimo 70%):
-   - NUIT: 30%
-   - Nome: 25%
-   - Telefone: 20%
-   - BI: 15%
-   - Conta Ativa: 10%
+O webhook é enviado automaticamente após 2-5 segundos do desembolso.
 
-2. **Score de Crédito**:
-   - < 600: Limite reduzido a 50%
-   - 600-699: Limite reduzido a 70%
-   - ≥ 700: Limite completo
+## 🔧 Configuração Avançada
 
-3. **Empréstimos Ativos**:
-   - Com empréstimos: -40% do limite
+### Arquivo banco.json
 
-4. **Saldo Mínimo**:
-   - Saldo < 1.000 MZN: -20% do limite
+```json
+{
+  "accounts": [
+    {
+      "id": "acc-1",
+      "accountNumber": "0123456789",
+      "holderName": "João Silva",
+      "accountType": "CHECKING",
+      "status": "ACTIVE",
+      "balance": 0
+    }
+  ],
+  "disbursements": []
+}
+```
 
----
+### Variáveis de Ambiente
 
-## 💾 Banco de Dados
+```env
+PORT=4000
+HOST=127.0.0.1
+WEBHOOK_DELAY=3000
+WEBHOOK_SECRET=banco-mock-secret
+LOG_LEVEL=debug
+```
 
-- **SQLite** (`banco.db`)
-- Tabelas:
-  - `clientes` - Cadastro de clientes
-  - `transacoes` - Movimentações financeiras
-  - `validacoes` - Histórico de verificações
-  - `desembolsos` - Histórico de empréstimos
+## 📊 Estados de Desembolso
 
----
+```
+PROCESSING → Em processamento (0-5 min)
+COMPLETED  → Concluído com sucesso
+FAILED     → Falha no processamento
+CANCELLED  → Cancelado manualmente
+```
+
+## 🚨 Erros Comuns
+
+### 404 - Conta não encontrada
+
+```json
+{
+  "statusCode": 404,
+  "message": "Conta bancária não encontrada"
+}
+```
+
+### 400 - Dados inválidos
+
+```json
+{
+  "statusCode": 400,
+  "message": "Número de conta inválido"
+}
+```
+
+### 409 - Desembolso duplicado
+
+```json
+{
+  "statusCode": 409,
+  "message": "Desembolso já processado para este empréstimo"
+}
+```
+
+## 🔄 Integração com PayJA
+
+### 1. Configurar URL no Backend
+
+```env
+# backend/.env
+BANCO_MOCK_URL=http://localhost:4000
+BANCO_MOCK_API_KEY=mock-api-key
+```
+
+### 2. Registrar Webhook URL
+
+O PayJA automaticamente registra a URL de webhook ao solicitar desembolso:
+
+```
+http://localhost:3000/webhook/bank-notification
+```
+
+### 3. Processar Notificações
+
+O backend PayJa recebe e processa os webhooks automaticamente.
+
+## 📈 Monitoramento
+
+### Logs
+
+```powershell
+# Logs do backend
+pm2 logs banco-mock
+
+# Logs do frontend
+pm2 logs banco-mock-frontend
+```
+
+### Métricas
+
+Disponíveis na interface frontend:
+- Total de desembolsos
+- Taxa de sucesso
+- Tempo médio de processamento
+- Volume por dia/mês
+
+## 🛠️ Desenvolvimento
+
+### Adicionar Nova Rota
+
+```javascript
+// src/routes/exemplo.js
+router.post('/api/exemplo', (req, res) => {
+  // Lógica aqui
+  res.json({ success: true });
+});
+```
+
+### Modificar Tempo de Webhook
+
+```javascript
+// src/index.js
+const WEBHOOK_DELAY = 3000; // milissegundos
+```
 
 ## 🔐 Segurança
 
-- API Key: `banco-mock-secret-key-2025` (definida no `.env`)
-- Em produção, implementar autenticação JWT
-- Validar assinatura das requisições
+⚠️ **Apenas para desenvolvimento!**
 
----
+- Não usar em produção
+- Sem autenticação real
+- Dados em memória (perdidos ao reiniciar)
+- CORS liberado para desenvolvimento
 
-## 📝 Logs
+## 📦 Scripts Disponíveis
 
-O sistema registra todas as operações:
-
-```
-🔍 Requisição de validação recebida do PayJA
-✅ Cliente João Pedro da Silva APROVADO
-💰 Limite aprovado: 50000 MZN
-💰 Requisição de desembolso recebida do PayJA
-✅ Desembolso iniciado: 10000 MZN para 258841234567
-```
-
----
-
-## 🧪 Testar APIs
-
-### Validação:
-```bash
-curl -X POST http://localhost:4000/api/validacao/verificar \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nuit": "100234567",
-    "nome": "João Pedro da Silva",
-    "telefone": "258841234567"
-  }'
-```
-
-### Desembolso:
-```bash
-curl -X POST http://localhost:4000/api/desembolso/executar \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nuit": "100234567",
-    "valor": 10000,
-    "numero_emola": "258841234567",
-    "referencia_payja": "LOAN-123"
-  }'
+```json
+{
+  "start": "node src/index.js",
+  "dev": "nodemon src/index.js",
+  "test": "jest"
+}
 ```
 
 ---
 
-## 🎨 Frontend (Em construção)
-
-Painel administrativo para:
-- Visualizar clientes
-- Acompanhar validações
-- Monitorar desembolsos
-- Estatísticas em tempo real
+**Banco Mock v1.0 - Simulador para Desenvolvimento**

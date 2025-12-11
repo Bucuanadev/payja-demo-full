@@ -7,12 +7,7 @@ import DashboardPage from './pages/DashboardPage';
 import LoansPage from './pages/LoansPage';
 import CustomersPage from './pages/CustomersPage';
 import UssdSimulatorPage from './pages/UssdSimulatorPage';
-import SmsSimulatorPage from './pages/SmsSimulatorPage';
 import IntegrationsPage from './pages/IntegrationsPage';
-import BankPartnersPage from './pages/BankPartnersPage';
-import SettingsPage from './pages/SettingsPage';
-import MockControlPage from './pages/MockControlPage';
-import CrossValidationPage from './pages/CrossValidationPage';
 
 function PrivateRoute({ children }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -33,12 +28,7 @@ function App() {
                 <Route path="/loans" element={<LoansPage />} />
                 <Route path="/customers" element={<CustomersPage />} />
                 <Route path="/ussd-simulator" element={<UssdSimulatorPage />} />
-                <Route path="/sms-simulator" element={<SmsSimulatorPage />} />
-                <Route path="/cross-validation" element={<CrossValidationPage />} />
                 <Route path="/integrations" element={<IntegrationsPage />} />
-                <Route path="/bank-partners" element={<BankPartnersPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/mock-control" element={<MockControlPage />} />
               </Routes>
             </DashboardLayout>
           </PrivateRoute>
