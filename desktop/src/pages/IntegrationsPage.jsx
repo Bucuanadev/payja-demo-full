@@ -45,6 +45,7 @@ export default function IntegrationsPage() {
         api.get('/bank-adapters/available-banks'),
         api.get('/mobile-operators/available-operators'),
       ]);
+      
       setBanks(banksRes.data);
       setOperators(operatorsRes.data);
     } catch (error) {
@@ -55,11 +56,18 @@ export default function IntegrationsPage() {
   const testBankConnection = async (bankCode) => {
     setTestingConnection({ ...testingConnection, [bankCode]: true });
     try {
-      // Simular teste de conexão
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      message.success(`Conexão com ${bankCode} testada com sucesso!`);
+      const response = await api.post(`/bank-adapters/test-connection/${bankCode}`);
+      
+      if (response.data.success) {
+        message.success(`Conexão com ${bankCode} estabelecida com sucesso!`);
+        if (response.data.data) {
+          console.log('Dados do banco:', response.data.data);
+        }
+      } else {
+        message.error(`Falha: ${response.data.message}`);
+      }
     } catch (error) {
-      message.error(`Falha ao conectar com ${bankCode}`);
+      message.error(`Erro ao conectar com ${bankCode}: ${error.response?.data?.message || error.message}`);
     } finally {
       setTestingConnection({ ...testingConnection, [bankCode]: false });
     }
@@ -71,7 +79,7 @@ export default function IntegrationsPage() {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       message.success(`Conexão com ${operatorCode} testada com sucesso!`);
     } catch (error) {
-      message.error(`Falha ao conectar com ${operatorCode}`);
+      message.error(`Falha ao conectar com ${operatorCode}: ${error.message}`);
     } finally {
       setTestingConnection({ ...testingConnection, [operatorCode]: false });
     }
@@ -80,12 +88,19 @@ export default function IntegrationsPage() {
   const saveBankConfig = async (bankCode, values) => {
     setLoading(true);
     try {
-      // Em produção, salvar no backend
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      localStorage.setItem(`bank_config_${bankCode}`, JSON.stringify(values));
-      message.success(`Configuração do ${bankCode} salva com sucesso!`);
+      const response = await api.post(`/bank-adapters/configure/${bankCode}`, {
+        apiUrl: values.apiUrl,
+        apiKey: values.apiKey,
+      });
+
+      if (response.data.success) {
+        localStorage.setItem(`bank_config_${bankCode}`, JSON.stringify(values));
+        message.success(response.data.message);
+      } else {
+        message.error(response.data.message);
+      }
     } catch (error) {
-      message.error('Erro ao salvar configuração');
+      message.error(`Erro ao salvar configuração: ${error.response?.data?.message || error.message}`);
     } finally {
       setLoading(false);
     }
@@ -94,9 +109,20 @@ export default function IntegrationsPage() {
   const saveOperatorConfig = async (operatorCode, values) => {
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      localStorage.setItem(`operator_config_${operatorCode}`, JSON.stringify(values));
-      message.success(`Configuração da ${operatorCode} salva com sucesso!`);
+      if (operatorCode === 'USSD_SIMULATOR') {
+        // Salvar configuração do simulador USSD
+        const config = {
+          apiUrl: values.apiUrl || 'http://localhost:3001',
+          timeout: values.timeout || 30000,
+          enabled: values.enabled !== false,
+        };
+        localStorage.setItem(`operator_config_${operatorCode}`, JSON.stringify(config));
+        message.success('Configuração do Simulador USSD salva com sucesso!');
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        localStorage.setItem(`operator_config_${operatorCode}`, JSON.stringify(values));
+        message.success(`Configuração da ${operatorCode} salva com sucesso!`);
+      }
     } catch (error) {
       message.error('Erro ao salvar configuração');
     } finally {
@@ -106,7 +132,13 @@ export default function IntegrationsPage() {
 
   const BankConfigForm = ({ bank }) => {
     const savedConfig = localStorage.getItem(`bank_config_${bank.code}`);
-    const initialValues = savedConfig ? JSON.parse(savedConfig) : {};
+    const initialValues = savedConfig ? JSON.parse(savedConfig) : 
+      bank.code === 'GHW' ? {
+        apiUrl: 'http://localhost:4500',
+        apiKey: 'banco-ghw-api-key-2025',
+        enabled: true,
+        timeout: 30000,
+      } : {};
 
     return (
       <Card
@@ -117,6 +149,9 @@ export default function IntegrationsPage() {
             <Tag color={bank.active ? 'success' : 'default'}>
               {bank.active ? 'Ativo' : 'Inativo'}
             </Tag>
+            {bank.configurable && (
+              <Tag color="blue">Configurável</Tag>
+            )}
           </Space>
         }
         extra={
@@ -185,19 +220,42 @@ export default function IntegrationsPage() {
           description={
             <div>
               <Paragraph>
-                <Text strong>Endpoints principais:</Text>
+                <Text strong>Endpoints principais {bank.code === 'GHW' ? '(Banco GHW)' : ''}:</Text>
               </Paragraph>
-              <ul>
-                <li>
-                  <Text code>POST /v1/eligibility/check</Text> - Verificar elegibilidade
-                </li>
-                <li>
-                  <Text code>POST /v1/loans/disburse</Text> - Solicitar desembolso
-                </li>
-                <li>
-                  <Text code>GET /v1/employees/public-sector</Text> - Listar funcionários
-                </li>
-              </ul>
+              {bank.code === 'GHW' ? (
+                <ul>
+                  <li>
+                    <Text code>POST /api/validacao/verificar</Text> - Verificar elegibilidade
+                  </li>
+                  <li>
+                    <Text code>POST /api/capacidade/consultar</Text> - Consultar capacidade financeira
+                  </li>
+                  <li>
+                    <Text code>POST /api/desembolso/executar</Text> - Executar desembolso
+                  </li>
+                  <li>
+                    <Text code>POST /api/emprestimos/consultar</Text> - Consultar empréstimos
+                  </li>
+                  <li>
+                    <Text code>POST /api/webhooks/pagamento</Text> - Notificar pagamento
+                  </li>
+                  <li>
+                    <Text code>GET /api/health</Text> - Status do sistema
+                  </li>
+                </ul>
+              ) : (
+                <ul>
+                  <li>
+                    <Text code>POST /v1/eligibility/check</Text> - Verificar elegibilidade
+                  </li>
+                  <li>
+                    <Text code>POST /v1/loans/disburse</Text> - Solicitar desembolso
+                  </li>
+                  <li>
+                    <Text code>GET /v1/employees/public-sector</Text> - Listar funcionários
+                  </li>
+                </ul>
+              )}
             </div>
           }
           type="info"
@@ -209,7 +267,12 @@ export default function IntegrationsPage() {
 
   const OperatorConfigForm = ({ operator }) => {
     const savedConfig = localStorage.getItem(`operator_config_${operator.code}`);
-    const initialValues = savedConfig ? JSON.parse(savedConfig) : {};
+    const initialValues = savedConfig ? JSON.parse(savedConfig) : 
+      operator.code === 'USSD_SIMULATOR' ? {
+        apiUrl: 'http://localhost:3001',
+        timeout: 30000,
+        enabled: true,
+      } : {};
 
     return (
       <Card
@@ -246,40 +309,22 @@ export default function IntegrationsPage() {
           initialValues={initialValues}
           onFinish={(values) => saveOperatorConfig(operator.code, values)}
         >
-          <Form.Item
-            label="URL da API"
-            name="apiUrl"
-            rules={[{ required: true, message: 'URL é obrigatória' }]}
-          >
-            <Input
-              placeholder={`https://api.${operator.code.toLowerCase()}.co.mz`}
-              prefix={<ApiOutlined />}
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="API Key"
-            name="apiKey"
-            rules={[{ required: true, message: 'API Key é obrigatória' }]}
-          >
-            <Input.Password placeholder="Sua API Key" />
-          </Form.Item>
-
-          {operator.code === 'MPESA' && (
-            <>
-              <Form.Item label="Public Key" name="publicKey">
-                <Input.TextArea rows={3} placeholder="Chave pública para criptografia" />
-              </Form.Item>
-              <Form.Item label="Service Provider Code" name="serviceProviderCode">
-                <Input placeholder="Código do provedor de serviço" />
-              </Form.Item>
-            </>
-          )}
-
           {operator.code === 'EMOLA' && (
-            <Form.Item label="Merchant ID" name="merchantId">
-              <Input placeholder="ID do comerciante" />
-            </Form.Item>
+            <>
+              <Title level={4}>Sincronização USSD</Title>
+
+              <Form.Item label="URL Simulador USSD" name="ussdSimulatorUrl" initialValue="http://localhost:3001">
+                <Input prefix={<ApiOutlined />} placeholder="http://localhost:3001" />
+              </Form.Item>
+
+              <Alert
+                message="Sincronização automática configurada"
+                description="O PayJA puxa automaticamente novos clientes registrados via USSD e realiza validação bancária."
+                type="info"
+                showIcon
+                style={{ marginTop: 16 }}
+              />
+            </>
           )}
 
           {operator.code === 'MKESH' && (
@@ -288,49 +333,14 @@ export default function IntegrationsPage() {
             </Form.Item>
           )}
 
-          <Form.Item label="Timeout (ms)" name="timeout" initialValue={30000}>
-            <Input type="number" placeholder="30000" />
-          </Form.Item>
-
-          <Form.Item label="Ativar Integração" name="enabled" valuePropName="checked" initialValue={true}>
-            <Switch />
-          </Form.Item>
-
           <Divider />
 
           <Space>
             <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={loading}>
               Salvar Configuração
             </Button>
-            <Button icon={<ReloadOutlined />}>Restaurar Padrões</Button>
           </Space>
         </Form>
-
-        <Divider />
-
-        <Alert
-          message="Documentação da API"
-          description={
-            <div>
-              <Paragraph>
-                <Text strong>Endpoints principais:</Text>
-              </Paragraph>
-              <ul>
-                <li>
-                  <Text code>POST /transfer/business-to-customer</Text> - Desembolsar para carteira
-                </li>
-                <li>
-                  <Text code>POST /payment/request</Text> - Solicitar pagamento
-                </li>
-                <li>
-                  <Text code>GET /account/balance</Text> - Consultar saldo
-                </li>
-              </ul>
-            </div>
-          }
-          type="info"
-          showIcon
-        />
       </Card>
     );
   };

@@ -346,12 +346,12 @@ function SettingsPage() {
           </Card>
         </TabPane>
 
-        {/* ABA: RESET DE SIMULADORES */}
+        {/* ABA: RESET DE DADOS DOS CLIENTES */}
         <TabPane 
           tab={
             <span>
               <ReloadOutlined />
-              Reset Simuladores
+              Reset de Dados dos Clientes
             </span>
           } 
           key="reset"
@@ -361,9 +361,9 @@ function SettingsPage() {
               <div>
                 <h3>
                   <WarningOutlined style={{ color: 'orange', marginRight: 8 }} />
-                  Reset de Dados de Teste
+                  Reset de Dados dos Clientes
                 </h3>
-                <p>Esta ação irá remover todos os dados de teste dos simuladores, incluindo:</p>
+                <p>Esta ação irá remover todos os dados de clientes registados, incluindo:</p>
                 <ul>
                   <li>Sessões USSD de números de teste (258860*)</li>
                   <li>Clientes de teste</li>
@@ -375,8 +375,8 @@ function SettingsPage() {
               </div>
 
               <Popconfirm
-                title="Tem certeza que deseja resetar os simuladores?"
-                description="Todos os dados de teste serão permanentemente removidos."
+                title="Tem certeza que deseja resetar os dados dos clientes?"
+                description="Todos os dados de clientes registados serão permanentemente removidos."
                 onConfirm={handleResetSimulators}
                 okText="Sim, resetar"
                 cancelText="Cancelar"
@@ -388,7 +388,7 @@ function SettingsPage() {
                   size="large"
                   loading={loading}
                 >
-                  Resetar Simuladores
+                  Resetar Dados dos Clientes
                 </Button>
               </Popconfirm>
             </Space>

@@ -5,9 +5,14 @@ interface CreateLoanDto {
   customerId: string;
   amount: number;
   termMonths: number;
+  termDays?: number;
   purpose?: string;
   totalAmount: number;
   monthlyPayment: number;
+  bankCode?: string;
+  bankName?: string;
+  interestRate?: number;
+  channel?: string;
 }
 
 @Injectable()
@@ -110,5 +115,10 @@ export class LoansService {
       completed,
       totalAmount: totalAmount._sum.amount || 0,
     };
+  }
+
+  async acceptTerms(customerId: string, version: string) {
+    // Record terms acceptance (implementation depends on your schema)
+    return { success: true, message: 'Terms accepted' };
   }
 }

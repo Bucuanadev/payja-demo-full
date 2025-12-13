@@ -17,6 +17,7 @@ import {
   UserAddOutlined,
   EyeOutlined,
   ReloadOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
 import api from '../services/api';
 
@@ -26,6 +27,7 @@ const ClientesPage = () => {
   const [selectedCliente, setSelectedCliente] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -51,6 +53,29 @@ const ClientesPage = () => {
       setIsModalVisible(true);
     } catch (error) {
       message.error('Erro ao carregar detalhes');
+    }
+  };
+
+  const handleEditCliente = async (clienteId) => {
+    try {
+      const response = await api.get(`/clientes/${clienteId}`);
+      setSelectedCliente(response.data);
+      form.setFieldsValue(response.data.cliente);
+      setIsEditModalVisible(true);
+    } catch (error) {
+      message.error('Erro ao carregar dados para edição');
+    }
+  };
+
+  const handleUpdateCliente = async (values) => {
+    try {
+      await api.patch(`/clientes/${selectedCliente.cliente.id}`, values);
+      message.success('Cliente atualizado com sucesso!');
+      form.resetFields();
+      setIsEditModalVisible(false);
+      loadClientes();
+    } catch (error) {
+      message.error(error.response?.data?.erro || 'Erro ao atualizar cliente');
     }
   };
 
@@ -124,13 +149,22 @@ const ClientesPage = () => {
       title: 'Ações',
       key: 'actions',
       render: (_, record) => (
-        <Button
-          type="link"
-          icon={<EyeOutlined />}
-          onClick={() => handleViewDetails(record.id)}
-        >
-          Ver
-        </Button>
+        <Space size="small">
+          <Button
+            type="link"
+            icon={<EyeOutlined />}
+            onClick={() => handleViewDetails(record.id)}
+          >
+            Ver
+          </Button>
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => handleEditCliente(record.id)}
+          >
+            Editar
+          </Button>
+        </Space>
       ),
     },
   ];
@@ -211,6 +245,114 @@ const ClientesPage = () => {
             </Descriptions.Item>
           </Descriptions>
         )}
+      </Modal>
+
+      {/* Modal de Editar */}
+      <Modal
+        title="Editar Cliente"
+        open={isEditModalVisible}
+        onCancel={() => {
+          setIsEditModalVisible(false);
+          form.resetFields();
+        }}
+        footer={null}
+        width={700}
+      >
+        <Form form={form} layout="vertical" onFinish={handleUpdateCliente}>
+          <Form.Item
+            name="nuit"
+            label="NUIT"
+            rules={[{ required: true, message: 'NUIT obrigatório' }]}
+          >
+            <Input placeholder="100234567" maxLength={9} disabled />
+          </Form.Item>
+
+          <Form.Item
+            name="bi"
+            label="Número do BI"
+            rules={[{ required: true, message: 'BI obrigatório' }]}
+          >
+            <Input placeholder="1234567890123N" maxLength={14} disabled />
+          </Form.Item>
+
+          <Form.Item
+            name="nome_completo"
+            label="Nome Completo"
+            rules={[{ required: true, message: 'Nome obrigatório' }]}
+          >
+            <Input placeholder="João da Silva" />
+          </Form.Item>
+
+          <Form.Item
+            name="telefone"
+            label="Telefone"
+            rules={[{ required: true, message: 'Telefone obrigatório' }]}
+          >
+            <Input placeholder="258841234567" maxLength={12} />
+          </Form.Item>
+
+          <Form.Item name="email" label="Email">
+            <Input type="email" placeholder="joao@email.mz" />
+          </Form.Item>
+
+          <Form.Item
+            name="numero_conta"
+            label="Número da Conta"
+            rules={[{ required: true, message: 'Número da conta obrigatório' }]}
+          >
+            <Input placeholder="0001000000001" disabled />
+          </Form.Item>
+
+          <Form.Item name="empregador" label="Empregador">
+            <Input placeholder="Ministério da Educação" />
+          </Form.Item>
+
+          <Form.Item name="saldo" label="Saldo">
+            <InputNumber style={{ width: '100%' }} min={0} />
+          </Form.Item>
+
+          <Form.Item name="limite_credito" label="Limite de Crédito">
+            <InputNumber style={{ width: '100%' }} min={0} />
+          </Form.Item>
+
+          <Form.Item name="score_credito" label="Score de Crédito">
+            <InputNumber style={{ width: '100%' }} min={300} max={850} />
+          </Form.Item>
+
+          <Form.Item name="renda_mensal" label="Renda Mensal">
+            <InputNumber style={{ width: '100%' }} min={0} />
+          </Form.Item>
+
+          <Form.Item name="tipo_conta" label="Tipo de Conta">
+            <Select>
+              <Select.Option value="CORRENTE">Corrente</Select.Option>
+              <Select.Option value="SALARIO">Salário</Select.Option>
+              <Select.Option value="POUPANCA">Poupança</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="status_conta" label="Status da Conta">
+            <Select>
+              <Select.Option value="ATIVA">Ativa</Select.Option>
+              <Select.Option value="INATIVA">Inativa</Select.Option>
+              <Select.Option value="BLOQUEADA">Bloqueada</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item>
+            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+              <Button onClick={() => {
+                setIsEditModalVisible(false);
+                form.resetFields();
+              }}>
+                Cancelar
+              </Button>
+              <Button type="primary" htmlType="submit" icon={<EditOutlined />}>
+                Guardar Alterações
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
       </Modal>
 
       {/* Modal de Adicionar */}

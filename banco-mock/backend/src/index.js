@@ -13,12 +13,10 @@ const capacidadeRoutes = require('./routes/capacidade');
 const healthRoutes = require('./routes/health');
 const emprestimosRoutes = require('./routes/emprestimos');
 const cedsifRoutes = require('./routes/cedsif');
+const payjaLoansRoutes = require('./routes/payja-loans');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-
-console.log(`\n🔧 PORT configurada para: ${PORT}`);
-console.log(`\n📝 Variáveis de ambiente:`, {PORT: process.env.PORT, NODE_ENV: process.env.NODE_ENV});
 
 // Middlewares
 app.use(cors());
@@ -50,6 +48,7 @@ app.use('/api/capacidade', capacidadeRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/emprestimos', emprestimosRoutes);
 app.use('/api/cedsif', cedsifRoutes);
+app.use('/api/payja-loans', payjaLoansRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {
@@ -63,39 +62,12 @@ app.use((err, req, res, next) => {
 // Inicializar banco de dados
 db.init();
 
-console.log('\n⏳ Iniciando servidor Express...');
-console.log('Tentando ouvir em 127.0.0.1:' + PORT);
-
 // Iniciar servidor
-const server = app.listen(PORT, '127.0.0.1', () => {
-  console.log(`\n✅ Servidor iniciado com sucesso!`);
+app.listen(PORT, () => {
   console.log(`\n🏦 ${process.env.BANCO_NOME} - Sistema Mock`);
   console.log(`📡 Servidor rodando em http://localhost:${PORT}`);
   console.log(`🔑 API Key: ${process.env.API_KEY}`);
   console.log(`\n✅ Pronto para receber requisições!\n`);
-  console.log('Endereco de escuta:', server.address());
-});
-
-server.on('listening', () => {
-  console.log('Evento listening dispara! Porta:', server.address().port);
-});
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught Exception:', error);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection:', reason);
-});
-
-// Keep process alive
-process.on('SIGTERM', () => {
-  console.log('SIGTERM recebido, encerrando...');
-  server.close(() => {
-    console.log('Servidor encerrado');
-    process.exit(0);
-  });
 });
 
 module.exports = app;

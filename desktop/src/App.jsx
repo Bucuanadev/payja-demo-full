@@ -6,8 +6,9 @@ import DashboardLayout from './components/DashboardLayout';
 import DashboardPage from './pages/DashboardPage';
 import LoansPage from './pages/LoansPage';
 import CustomersPage from './pages/CustomersPage';
-import UssdSimulatorPage from './pages/UssdSimulatorPage';
 import IntegrationsPage from './pages/IntegrationsPage';
+import BankPartnersPage from './pages/BankPartnersPage';
+import SettingsPage from './pages/SettingsPage';
 
 function PrivateRoute({ children }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -27,8 +28,9 @@ function App() {
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/loans" element={<LoansPage />} />
                 <Route path="/customers" element={<CustomersPage />} />
-                <Route path="/ussd-simulator" element={<UssdSimulatorPage />} />
                 <Route path="/integrations" element={<IntegrationsPage />} />
+                <Route path="/bank-partners" element={<BankPartnersPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
               </Routes>
             </DashboardLayout>
           </PrivateRoute>

@@ -112,4 +112,28 @@ export class AdminService {
       },
     });
   }
+
+  async resetTestData() {
+    try {
+      // Delete in order: first scoring results, then loans, then customers
+      const deletedScoring = await this.prisma.scoringResult.deleteMany({});
+      const deletedLoans = await this.prisma.loan.deleteMany({});
+      const deletedCustomers = await this.prisma.customer.deleteMany({});
+      
+      console.log(`✓ Reset completed: ${deletedCustomers.count} customers, ${deletedLoans.count} loans, ${deletedScoring.count} scoring results deleted`);
+      
+      return {
+        success: true,
+        message: 'Todos os dados dos clientes foram apagados',
+        deleted: {
+          customers: deletedCustomers.count,
+          loans: deletedLoans.count,
+          scoringResults: deletedScoring.count,
+        },
+      };
+    } catch (error) {
+      console.error('Error resetting data:', error);
+      throw new Error(`Erro ao apagar dados dos clientes: ${error.message}`);
+    }
+  }
 }

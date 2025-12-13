@@ -1,24 +1,26 @@
-import { Module } from '@nestjs/common';
-import { BankAdaptersService } from './bank-adapters.service';
+import { Module, OnModuleInit } from '@nestjs/common';
+import { BankAdaptersService } from './bank-adapters-v2.service';
 import { BankAdaptersController } from './bank-adapters.controller';
+import { BankPartnersController } from './bank-partners.controller';
 import { PrismaService } from '../../prisma.service';
 
-// Adaptadores específicos por banco
-import { LetsegoAdapter } from './adapters/letsego.adapter';
-import { MbimAdapter } from './adapters/mbim.adapter';
-import { BciAdapter } from './adapters/bci.adapter';
-import { StandardBankAdapter } from './adapters/standard-bank.adapter';
+// Adaptador Universal
+import { UniversalBankAdapter } from './adapters/universal.adapter';
 
 @Module({
-  controllers: [BankAdaptersController],
+  controllers: [BankAdaptersController, BankPartnersController],
   providers: [
     BankAdaptersService,
     PrismaService,
-    LetsegoAdapter,
-    MbimAdapter,
-    BciAdapter,
-    StandardBankAdapter,
+    UniversalBankAdapter,
   ],
   exports: [BankAdaptersService],
 })
-export class BankAdaptersModule {}
+export class BankAdaptersModule implements OnModuleInit {
+  constructor(private readonly bankAdaptersService: BankAdaptersService) {}
+
+  async onModuleInit() {
+    // Inicializar adaptadores ao iniciar o módulo
+    await this.bankAdaptersService.initializeAdapters();
+  }
+}

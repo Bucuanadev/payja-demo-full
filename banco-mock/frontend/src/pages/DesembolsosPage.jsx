@@ -32,8 +32,21 @@ const DesembolsosPage = () => {
   const loadDesembolsos = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/desembolso/historico');
-      setDesembolsos(response.data.desembolsos || []);
+      const response = await api.get('/payja-loans');
+      const data = response.data?.data || [];
+      const mapped = data.map((d) => ({
+        id: d.id,
+        nome_completo: d.cliente || 'N/A',
+        numero_conta: d.conta || '0000000000',
+        valor: Number(d.valor) || 0,
+        numero_emola: d.numeroEmola || '-',
+        referencia_payja: d.referenciaPayJA || d.loanId || '-',
+        status: d.status || 'PENDENTE',
+        tentativas: d.tentativas ?? 0,
+        criado_em: d.dataCriacao,
+        processado_em: d.dataProcessamento,
+      }));
+      setDesembolsos(mapped);
     } catch (error) {
       message.error('Erro ao carregar desembolsos');
     } finally {
@@ -155,7 +168,7 @@ const DesembolsosPage = () => {
       dataIndex: 'criado_em',
       key: 'criado',
       width: 180,
-      render: (data) => new Date(data).toLocaleString('pt-MZ'),
+      render: (data) => data ? new Date(data).toLocaleString('pt-MZ') : '-',
     },
     {
       title: 'Data Processamento',

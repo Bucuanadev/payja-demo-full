@@ -39,6 +39,18 @@ router.post('/executar', async (req, res) => {
       });
     }
 
+    // Verificar limite de crédito
+    const limiteCredito = Number(cliente.limite_credito || 0);
+    if (valor > limiteCredito) {
+      console.log(`❌ Valor solicitado (${valor}) excede limite de crédito (${limiteCredito})`);
+      return res.json({
+        sucesso: false,
+        erro: 'Limite de crédito insuficiente',
+        codigo: 'LIMITE_CREDITO_INSUFICIENTE',
+        limite_credito: limiteCredito,
+      });
+    }
+
     // Verificar saldo suficiente
     if (cliente.saldo < valor) {
       console.log(`❌ Saldo insuficiente: ${cliente.saldo} < ${valor}`);

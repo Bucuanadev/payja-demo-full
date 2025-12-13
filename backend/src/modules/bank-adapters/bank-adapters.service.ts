@@ -4,6 +4,7 @@ import { LetsegoAdapter } from './adapters/letsego.adapter';
 import { MbimAdapter } from './adapters/mbim.adapter';
 import { BciAdapter } from './adapters/bci.adapter';
 import { StandardBankAdapter } from './adapters/standard-bank.adapter';
+import { GhwAdapter } from './adapters/ghw.adapter';
 
 export interface BankEligibilityRequest {
   customerId: string;
@@ -48,6 +49,7 @@ export class BankAdaptersService {
     private mbimAdapter: MbimAdapter,
     private bciAdapter: BciAdapter,
     private standardBankAdapter: StandardBankAdapter,
+    private ghwAdapter: GhwAdapter,
   ) {
     // Registrar todos os adaptadores disponíveis
     this.adapters = new Map<string, any>([
@@ -55,6 +57,7 @@ export class BankAdaptersService {
       ['MBIM', this.mbimAdapter],
       ['BCI', this.bciAdapter],
       ['STANDARD_BANK', this.standardBankAdapter],
+      ['GHW', this.ghwAdapter],
     ]);
   }
 
@@ -256,6 +259,7 @@ export class BankAdaptersService {
       MBIM: 'Millennium BIM',
       BCI: 'BCI - Banco Comercial e de Investimentos',
       STANDARD_BANK: 'Standard Bank Moçambique',
+      GHW: 'Banco GHW',
     };
     return names[code] || code;
   }
@@ -285,6 +289,60 @@ export class BankAdaptersService {
         name: 'Standard Bank Moçambique',
         active: true,
       },
+      {
+        code: 'GHW',
+        name: 'Banco GHW',
+        active: true,
+        configurable: true,
+      },
     ];
+  }
+
+  /**
+   * Testar conexão com um banco
+   */
+  async testConnection(bankCode: string) {
+    const adapter = this.adapters.get(bankCode);
+    
+    if (!adapter) {
+      throw new BadRequestException(`Banco não suportado: ${bankCode}`);
+    }
+
+    if (typeof adapter.testConnection === 'function') {
+      return await adapter.testConnection();
+    }
+
+    return {
+      success: false,
+      message: 'Teste de conexão não disponível para este banco',
+    };
+  }
+
+  /**
+   * Configurar API de um banco
+   */
+  async configureBank(bankCode: string, config: { apiUrl?: string; apiKey?: string }) {
+    const adapter = this.adapters.get(bankCode);
+    
+    if (!adapter) {
+      throw new BadRequestException(`Banco não suportado: ${bankCode}`);
+    }
+
+    if (typeof adapter.configure === 'function') {
+      adapter.configure(config);
+      return {
+        success: true,
+        message: `${this.getBankName(bankCode)} configurado com sucesso`,
+        config: {
+          apiUrl: config.apiUrl,
+          apiKeyConfigured: !!config.apiKey,
+        },
+      };
+    }
+
+    return {
+      success: false,
+      message: 'Configuração não disponível para este banco',
+    };
   }
 }

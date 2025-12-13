@@ -4,11 +4,12 @@ import {
   DashboardOutlined,
   DollarOutlined,
   UserOutlined,
-  MobileOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   ApiOutlined,
+  SettingOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
@@ -39,14 +40,19 @@ function DashboardLayout({ children }) {
       label: 'Clientes',
     },
     {
-      key: '/ussd-simulator',
-      icon: <MobileOutlined />,
-      label: 'Simulador USSD',
-    },
-    {
       key: '/integrations',
       icon: <ApiOutlined />,
       label: 'Integrações',
+    },
+    {
+      key: '/bank-partners',
+      icon: <ApiOutlined />,
+      label: 'Bancos Parceiros',
+    },
+    {
+      key: '/settings',
+      icon: <SettingOutlined />,
+      label: 'Definições',
     },
   ];
 

@@ -103,8 +103,9 @@ function seedData() {
         telefone: '258844567890',
         email: 'ana.cossa@email.mz',
         numero_conta: '0001000000004',
+        numero_emola: '864567890',
         tipo_conta: 'CORRENTE',
-        saldo: 8000,
+        saldo: 10000,
         limite_credito: 15000,
         score_credito: 590,
         renda_mensal: 18000,
@@ -206,6 +207,15 @@ const queries = {
 
   getClienteByNumeroConta: (numero_conta) => {
     return db.get('clientes').find({ numero_conta }).value();
+  },
+
+  getClienteByNome: (nome) => {
+    // Search by exact match or partial match (case insensitive)
+    const normalizedSearch = nome.toLowerCase().trim();
+    return db.get('clientes').find((c) => {
+      const clienteNome = c.nome_completo.toLowerCase().trim();
+      return clienteNome === normalizedSearch || clienteNome.includes(normalizedSearch);
+    }).value();
   },
 
   // Transações

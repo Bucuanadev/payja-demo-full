@@ -12,12 +12,9 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    host: '127.0.0.1',
-    middlewareMode: false,
-    hmr: {
-      host: 'localhost',
-      port: 5173,
-    },
+    host: true,
+    strictPort: true,
+    open: false,
   },
   build: {
     outDir: 'dist',

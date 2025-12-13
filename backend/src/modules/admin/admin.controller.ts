@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -10,6 +10,11 @@ export class AdminController {
   @Get('dashboard')
   async getDashboard() {
     return this.adminService.getDashboardStats();
+  }
+
+  @Post('reset-test-data')
+  async resetTestData() {
+    return this.adminService.resetTestData();
   }
 
   @Get('customers')

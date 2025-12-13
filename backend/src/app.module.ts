@@ -6,6 +6,7 @@ import { LoansModule } from './modules/loans/loans.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { BankAdaptersModule } from './modules/bank-adapters/bank-adapters.module';
 import { MobileOperatorAdaptersModule } from './modules/mobile-operator-adapters/mobile-operator-adapters.module';
+import { PayjaSyncModule } from './modules/payja-sync/payja-sync.module';
 import { PrismaService } from './prisma.service';
 
 @Module({
@@ -19,6 +20,7 @@ import { PrismaService } from './prisma.service';
     AdminModule,
     BankAdaptersModule,
     MobileOperatorAdaptersModule,
+    PayjaSyncModule,
   ],
   providers: [PrismaService],
 })

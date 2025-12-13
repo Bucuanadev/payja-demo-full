@@ -121,6 +121,24 @@ function CustomersPage() {
               <Descriptions.Item label="NUIT">
                 {selectedCustomer.nuit || 'Não informado'}
               </Descriptions.Item>
+              <Descriptions.Item label="BI">
+                {selectedCustomer.biNumber || 'Não informado'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Email">
+                {selectedCustomer.email || 'Não informado'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Limite de Crédito">
+                {selectedCustomer.creditLimit ? `${selectedCustomer.creditLimit.toLocaleString('pt-MZ')} MZN` : 'Não informado'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Score de Crédito">
+                {selectedCustomer.creditScore || 'Não informado'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Salário">
+                {selectedCustomer.salary ? `${selectedCustomer.salary.toLocaleString('pt-MZ')} MZN` : 'Não informado'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Empregador">
+                {selectedCustomer.salaryBank || 'Não informado'}
+              </Descriptions.Item>
               <Descriptions.Item label="Status">
                 {selectedCustomer.verified ? (
                   <Tag color="green">Verificado</Tag>
