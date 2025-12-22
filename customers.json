@@ -1,0 +1,33 @@
+﻿
+
+StatusCode        : 200
+StatusDescription : OK
+Content           : [{"id":"79c74f6d-1ce6-41f1-bb2b-
+                    0777b8dcef7b","phoneNumber":"864
+                    567890","nuit":"100567890","name
+                    ":"Ana Isabel Cossa","email":nul
+                    l,"biNumber":"4567890123456L","a
+                    ccountNumber":null,"accountType"
+                    :null,"i...
+RawContent        : HTTP/1.1 200 OK
+                    Access-Control-Allow-Origin: *
+                    Connection: keep-alive
+                    Keep-Alive: timeout=5
+                    Content-Length: 372
+                    Content-Type: application/json; 
+                    charset=utf-8
+                    Date: Wed, 17 Dec 2025 09:26:22 
+                    GMT...
+Forms             : {}
+Headers           : {[Access-Control-Allow-Origin, 
+                    *], [Connection, keep-alive], 
+                    [Keep-Alive, timeout=5], 
+                    [Content-Length, 372]...}
+Images            : {}
+InputFields       : {}
+Links             : {}
+ParsedHtml        : mshtml.HTMLDocumentClass
+RawContentLength  : 372
+
+
+

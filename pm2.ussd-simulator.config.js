@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'ussd-simulator',
-      cwd: 'C:/Users/User/Downloads/ussd/ussd-simulator-standalone',
+      cwd: 'C:/Users/User/Downloads/ussd/payja-demo/ussd-simulator-standalone',
       script: 'src/main.js',
       env: {
         PORT: 3001,
