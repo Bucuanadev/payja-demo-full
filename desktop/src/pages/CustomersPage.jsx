@@ -1,22 +1,98 @@
+
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Tag, Button, Modal, Descriptions } from 'antd';
-import { EyeOutlined, UserOutlined } from '@ant-design/icons';
+import { Card, Table, Tag, Button, Modal, Descriptions, message } from 'antd';
+import { EyeOutlined, UserOutlined, CloudDownloadOutlined } from '@ant-design/icons';
 import api from '../services/api';
+
 
 function CustomersPage() {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [loadingUssd, setLoadingUssd] = useState(false);
+
 
   useEffect(() => {
-    loadCustomers();
+    // Load main customers then automatically import USSD customers
+    (async () => {
+      await loadCustomers();
+      await loadUssdCustomers();
+    })();
   }, []);
+
+  const loadUssdCustomers = async () => {
+    setLoadingUssd(true);
+    try {
+      const response = await fetch('http://localhost:3001/api/payja/ussd/new-customers');
+      if (!response.ok) throw new Error('Erro ao buscar novos clientes USSD');
+      const data = await response.json();
+      // normalize incoming USSD customers and merge into main customers list
+      const list = Array.isArray(data) ? data : (data?.data || []);
+      const normalized = list.map((c) => {
+        const phone = c.phoneNumber || c.phone || c.msisdn || '';
+        return {
+          id: c.id || phone || `${phone}-${c.nuit || ''}`,
+          phoneNumber: phone,
+          name: c.name || c.fullName || c.customerName || 'Cliente',
+          nuit: c.nuit || null,
+          biNumber: c.biNumber || c.bi || null,
+          institution: c.institution || c.salaryBank || c.empregador || null,
+          verified: !!c.verified,
+          email: c.email || null,
+          creditLimit: typeof c.creditLimit === 'number' ? c.creditLimit : (c.customerLimit || null),
+          creditScore: typeof c.creditScore === 'number' ? c.creditScore : (c.score || c.score_credito || null),
+          salary: typeof c.salary === 'number' ? c.salary : (c.salario || null),
+          salaryBank: c.salaryBank || c.empregador || null,
+          createdAt: c.createdAt || c.registrationDate || new Date().toISOString(),
+          raw: c,
+        };
+      });
+      setCustomers(prev => {
+        const byPhone = {};
+        prev.forEach(p => { byPhone[p.phoneNumber] = p; });
+        for (const n of normalized) {
+          const key = n.phoneNumber || n.id;
+          if (!key) continue;
+          if (byPhone[key]) {
+            // merge and prefer simulator-provided fields when present
+            byPhone[key] = { ...byPhone[key], ...n, name: n.name || byPhone[key].name };
+          } else {
+            byPhone[key] = n;
+          }
+        }
+        return Object.values(byPhone).sort((a,b) => (b.createdAt || '') > (a.createdAt || '') ? 1 : -1);
+      });
+      message.success('Novos clientes USSD carregados!');
+    } catch (error) {
+      message.error('Erro ao buscar novos clientes USSD');
+    } finally {
+      setLoadingUssd(false);
+    }
+  };
 
   const loadCustomers = async () => {
     try {
-      const response = await api.get('/admin/customers');
-      setCustomers(response.data);
+      const res = await api.get('/admin/customers');
+      const data = res.data || [];
+      const normalized = (Array.isArray(data) ? data : []).map((c) => {
+        const phone = c.phoneNumber || c.phone || c.msisdn || c.phone_number || c.msisdn_raw || c.contact || c.contacts?.[0];
+        const id = c.id || phone || c.nuit || `${phone || 'unknown'}-${c.nuit || ''}`;
+        const name = c.name || c.fullName || c.full_name || c.customerName || c.firstName || c.lastName || '';
+        let createdAt = c.createdAt || c.created_at || c.created || c.date || c.createdAtUtc || null;
+        if (typeof createdAt === 'number') createdAt = new Date(createdAt).toISOString();
+        if (createdAt && isNaN(new Date(createdAt).getTime())) createdAt = null;
+        return {
+          ...c,
+          id,
+          phoneNumber: phone,
+          name,
+          createdAt,
+          loans: c.loans || [],
+          scoringResults: c.scoringResults || c.scoring_results || [],
+        };
+      });
+      setCustomers(normalized);
     } catch (error) {
       console.error('Error loading customers:', error);
     } finally {
@@ -73,7 +149,11 @@ function CustomersPage() {
       title: 'Data de Cadastro',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (date) => new Date(date).toLocaleDateString('pt-PT'),
+      render: (date) => {
+        if (!date) return '-';
+        const d = new Date(date);
+        return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('pt-PT');
+      },
     },
     {
       title: 'Ações',
@@ -90,9 +170,25 @@ function CustomersPage() {
     },
   ];
 
+
   return (
     <div>
-      <Card title="Clientes" extra={<UserOutlined />}>
+      <Card
+        title="Clientes"
+        extra={
+          <>
+            <Button
+              icon={<CloudDownloadOutlined />}
+              loading={loadingUssd}
+              onClick={loadUssdCustomers}
+              style={{ marginRight: 8 }}
+            >
+              Novos Clientes USSD
+            </Button>
+            <UserOutlined />
+          </>
+        }
+      >
         <Table
           columns={columns}
           dataSource={customers}
@@ -100,6 +196,7 @@ function CustomersPage() {
           loading={loading}
           pagination={{ pageSize: 15 }}
         />
+        {/* USSD customers are merged into main `customers` table; no separate UI block */}
       </Card>
 
       <Modal
@@ -167,7 +264,11 @@ function CustomersPage() {
                   {
                     title: 'Data',
                     dataIndex: 'createdAt',
-                    render: (date) => new Date(date).toLocaleDateString('pt-PT'),
+                    render: (date) => {
+                      if (!date) return '-';
+                      const d = new Date(date);
+                      return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('pt-PT');
+                    },
                   },
                 ]}
                 pagination={false}
