@@ -1,0 +1,27 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  phone     String   @unique @map("phone")           // msisdn
+  fullName  String   @map("fullName")                // name
+  nuit      String?  @map("nuit")
+  birthDate String?  @map("birthDate")
+  address   String?  @map("address")
+  district  String?  @map("district")
+  province  String?  @map("province")
+  status    String   @default("active") @map("status")
+  registrationDate String? @map("registrationDate")
+  lastAccess String? @map("lastAccess")
+  createdAt DateTime @default(now()) @map("createdAt")
+  updatedAt DateTime @updatedAt @map("updatedAt")
+  email     String?  @map("email")
+  balance   Float    @default(0) @map("balance")
+
+  @@map("customers")
+}

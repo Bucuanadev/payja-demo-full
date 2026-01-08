@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="pt-MZ">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador USSD - PayJA</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            gap: 40px;
+            max-width: 1400px;
+            width: 100%;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .smartphone {
+            width: 380px;
+            height: 780px;
+            background: #1c1c1e;
+            border-radius: 50px;
+            padding: 12px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .smartphone::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 25px;
+            background: #1c1c1e;
+            border-radius: 0 0 20px 20px;
+            z-index: 10;
+        }
+
+        .speaker {
+            position: absolute;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 6px;
+            background: #2c2c2e;
+            border-radius: 10px;
+            z-index: 11;
+        }
+
+        .screen {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            border-radius: 40px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .status-bar {
+            height: 44px;
+            background: #1c1c1e;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .ussd-header {
+            background: #667eea;
+            padding: 20px;
+            text-align: center;
+            color: #fff;
+            border-bottom: 1px solid #5568d3;
+        }
+
+        .ussd-header h1 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .ussd-header p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .screen-content {
+            flex: 1;
+            background: #fff;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .message-box {
+            background: #f2f2f7;
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            font-size: 15px;
+            line-height: 1.5;
+            color: #000;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .message-box.user { background: #e8f0ff; }
+        .message-box.error { background: #ffe8e8; color: #8b0000; }
+
+        .input-area {
+            background: #f2f2f7;
+            padding: 15px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .ussd-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 20px;
+            background: #fff;
+            font-size: 16px;
+            outline: none;
+            border: 2px solid #e0e0e0;
+        }
+
+        .ussd-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #667eea;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-btn:hover:not(:disabled) { background: #5568d3; }
+        .send-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+        .bottom-nav {
+            height: 50px;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-item {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            font-size: 18px;
+            position: relative;
+        }
+
+        .nav-item:hover { color: rgba(255, 255, 255, 1); }
+
+        .sms-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #ff3b30;
+            color: #fff;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sms-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+
+        .sms-modal-content {
+            background: #fff;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .sms-modal-header {
+            background: #667eea;
+            color: #fff;
+            padding: 15px 20px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sms-modal-close {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .sms-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f5f5f5;
+        }
+
+        .sms-item {
+            background: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .sms-from {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .sms-text {
+            color: #333;
+            font-size: 14px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+
+        .sms-time {
+            font-size: 11px;
+            color: #999;
+            margin-top: 6px;
+        }
+
+        /* PAINEL DE CONTROLE */
+        .control-panel {
+            flex: 1;
+            background: #fff;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            max-width: 600px;
+        }
+
+        .panel-header h1 {
+            font-size: 28px;
+            color: #1c1c1e;
+            margin-bottom: 8px;
+        }
+
+        .panel-header h1 i {
+            margin-right: 10px;
+        }
+
+        .panel-header p {
+            color: #8e8e93;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        .status-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .status-label { font-size: 13px; opacity: 0.9; }
+        .status-label i { margin-right: 8px; }
+        .status-value { font-weight: 600; font-size: 14px; }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1c1c1e;
+            margin: 25px 0 15px 0;
+            border-top: 1px solid #e0e0e0;
+            padding-top: 15px;
+        }
+
+        .section-title i {
+            margin-right: 8px;
+        }
+
+        .action-button {
+            width: 100%;
+            padding: 16px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 12px;
+            transition: all 0.3s;
+            background: #667eea;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .action-button:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .action-secondary {
+            background: #ff9800;
+        }
+
+        .action-secondary:hover {
+            background: #f57c00;
+        }
+
+        .action-green {
+            background: #10b981;
+        }
+
+        .action-green:hover {
+            background: #059669;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #8e8e93;
+            margin-bottom: 8px;
+        }
+
+        .input-label i {
+            margin-right: 6px;
+        }
+
+        .config-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .config-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .info-box strong i {
+            margin-right: 8px;
+        }
+
+        @media (max-width: 1024px) {
+            .container { flex-direction: column; }
+            .control-panel { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- SMARTPHONE SIMULADOR (REACT) -->
+        <div id="phone-root"></div>
+
+        <!-- PAINEL DE CONTROLE (VANILLA JS) -->
+        <div class="control-panel">
+            <div class="panel-header">
+                <h1><i class="fas fa-gamepad"></i> Painel de Controle</h1>
+                <p>Simulador USSD Standalone - PayJA</p>
+            </div>
+
+            <div class="info-box">
+                <strong><i class="fas fa-database"></i> Base de Dados Local</strong>
+                <p>Este simulador possui seu próprio banco de dados SQLite que armazena todos os números registrados, sessões USSD e histórico de transações.</p>
+            </div>
+
+            <div class="status-card">
+                <div class="status-row">
+                    <span class="status-label"><i class="fas fa-signal"></i> Status da Conexão</span>
+                    <span class="status-value" id="status">Verificando...</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label"><i class="fas fa-phone"></i> Telefone Atual</span>
+                    <span class="status-value" id="phone">875551234</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label"><i class="fas fa-link"></i> Sessão Ativa</span>
+                    <span class="status-value" id="session">Nenhuma</span>
+                </div>
+            </div>
+
+            <button class="action-button" onclick="window.startUSSD()">
+                <i class="fas fa-phone-alt"></i> *898# - Solicitar Empréstimo
+            </button>
+            <button class="action-button action-secondary" onclick="window.location.href='apis.html'">
+                <i class="fas fa-plug"></i> Gerenciar APIs
+            </button>
+            <button class="action-button action-green" onclick="window.openCustomersDB()">
+                <i class="fas fa-users"></i> Ver Clientes Registados
+            </button>
+            <button class="action-button" onclick="window.location.href='loans.html'" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <i class="fas fa-hand-holding-usd"></i> Gestão de Empréstimos
+            </button>
+
+            <div class="section-title"><i class="fas fa-cogs"></i> Configuração</div>
+
+            <div class="input-group">
+                <label class="input-label"><i class="fas fa-mobile-alt"></i> Número de Telefone</label>
+                <input 
+                    type="text" 
+                    class="config-input" 
+                    id="phoneInput" 
+                    value="875551234"
+                    placeholder="Ex: 868801234"
+                />
+            </div>
+
+            <div class="input-group">
+                <label class="input-label"><i class="fas fa-server"></i> URL da API</label>
+                <input 
+                    type="text" 
+                    class="config-input" 
+                    id="apiUrl" 
+                    value="http://155.138.228.89:3001"
+                    readonly
+                />
+            </div>
+        </div>
+    </div>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <script>
+        const { useState, useEffect, useRef } = React;
+        const e = React.createElement;
+
+        // Armazenamento local para simular backoffice/PayJA
+        const STORAGE_KEY = 'ussdSimDataV2';
+        const API_BASE = 'http://155.138.228.89:3001/api/ussd';
+
+        const loadDb = () => {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                return raw ? JSON.parse(raw) : { customers: [] };
+            } catch (err) {
+                console.error('Erro ao ler storage', err);
+                return { customers: [] };
+            }
+        };
+
+        const saveDb = (db) => {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+            } catch (e) { console.warn('Could not write localStorage', e); }
+            // Try to sync immediately with simulator server so registrations go to SQLite
+            try {
+                const customers = Array.isArray(db) ? db : (Array.isArray(db.customers) ? db.customers : []);
+                if (customers && customers.length) {
+                    const endpoints = [
+                        '/api/customers/sync-from-localStorage',
+                        'http://155.138.228.89:3002/api/customers/sync-from-localStorage',
+                        'http://155.138.228.89:3001/api/customers/sync-from-localStorage'
+                    ];
+                    (async () => {
+                        for (const url of endpoints) {
+                            try {
+                                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customers }) });
+                                if (res && res.ok) return;
+                            } catch (e) {
+                                // try next
+                            }
+                        }
+                    })();
+                }
+            } catch (e) { /* silent */ }
+        };
+
+        const upsertCustomer = (phoneNumber, updater) => {
+            const db = loadDb();
+            const existing = db.customers.find((c) => c.phoneNumber === phoneNumber);
+            const base = existing || { phoneNumber, status: 'new', loans: [] };
+            const updated = typeof updater === 'function' ? updater(base) : { ...base, ...updater };
+            if (existing) {
+                Object.assign(existing, updated);
+            } else {
+                db.customers.push(updated);
+            }
+            saveDb(db);
+            return updated;
+        };
+
+        const findCustomer = (phoneNumber) => {
+            const db = loadDb();
+            return db.customers.find((c) => c.phoneNumber === phoneNumber);
+        };
+
+        const formatTime = (date) => {
+            const h = String(date.getHours()).padStart(2, '0');
+            const m = String(date.getMinutes()).padStart(2, '0');
+            return h + ':' + m;
+        };
+
+        const formatMoney = (value) => {
+            const num = Number(value || 0);
+            return `${num.toLocaleString('pt-MZ')} MZN`;
+        };
+
+        const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
+
+        const persistCustomerToApi = async (payload) => {
+            const body = JSON.stringify({
+                phoneNumber: payload.phoneNumber,
+                name: payload.name,
+                nuit: payload.nuit,
+                biNumber: payload.bi,
+                institution: payload.institution
+            });
+
+            // Try relative API first (same origin), then fall back to common simulator port
+            const endpoints = ['/api/customers/register', 'http://155.138.228.89:3002/api/customers/register', 'http://155.138.228.89:3001/api/customers/register'];
+            for (const url of endpoints) {
+                try {
+                    const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+                    if (response.ok) {
+                        console.log('✓ Customer registered in backend via', url, payload.phoneNumber);
+                        return true;
+                    } else {
+                        console.warn('Backend registration warning from', url, await response.text());
+                    }
+                } catch (err) {
+                    // try next endpoint
+                }
+            }
+            console.warn('Falha ao gravar no backend em todos endpoints (modo local continua)');
+            return false;
+        };
+
+        const hydrateCustomerFromApi = async (phoneNumber) => {
+            try {
+                const res = await fetch('/api/customers');
+                if (!res.ok) return null;
+                const json = await res.json();
+                const list = Array.isArray(json) ? json : json.data || json.customers || [];
+                const found = list.find((c) => c.phoneNumber === phoneNumber);
+                if (!found) return null;
+
+                const eligibility = typeof found.creditLimit === 'number'
+                    ? { limit: found.creditLimit, min: Math.min(found.creditLimit, 1000) || 0 }
+                    : null;
+
+                const status = found.verified ? 'eligible' : (found.status || 'registered');
+
+                return upsertCustomer(phoneNumber, {
+                    phoneNumber,
+                    name: found.name || phoneNumber,
+                    nuit: found.nuit || '',
+                    bi: found.biNumber || '',
+                    institution: found.institution || '',
+                    verified: !!found.verified,
+                    status,
+                    eligibility,
+                    loans: found.loans || [],
+                });
+            } catch (err) {
+                console.warn('Falha ao hidratar cliente da API:', err.message);
+                return null;
+            }
+        };
+
+        const welcomeMessage = 'Txeneka Male\n\nClique em *898# para iniciar.';
+
+        // ==================== REACT SMARTPHONE ====================
+        function SmartphoneApp() {
+            const [time, setTime] = useState(() => formatTime(new Date()));
+            const [sessionStep, setSessionStep] = useState(null);
+            const [sessionPhone, setSessionPhone] = useState(null);
+            const [currentPhone, setCurrentPhone] = useState(() => document.getElementById('phoneInput')?.value || '875551234');
+            const [messages, setMessages] = useState([{ text: welcomeMessage, kind: '' }]);
+            const [inputValue, setInputValue] = useState('');
+            const [busy, setBusy] = useState(false);
+            const [draft, setDraft] = useState({});
+            const [smsMessages, setSmsMessages] = useState([]);
+            const [showSmsModal, setShowSmsModal] = useState(false);
+            const contentRef = useRef(null);
+            const inputRef = useRef(null);
+            const smsPollRef = useRef(null);
+
+            useEffect(() => {
+                const id = setInterval(() => setTime(formatTime(new Date())), 1000);
+                return () => clearInterval(id);
+            }, []);
+
+            useEffect(() => {
+                const input = document.getElementById('phoneInput');
+                if (!input) return undefined;
+                const handler = (evt) => setCurrentPhone(evt.target.value || '');
+                input.addEventListener('input', handler);
+                return () => input.removeEventListener('input', handler);
+            }, []);
+
+            useEffect(() => {
+                const fetchSmsLogs = async () => {
+                    try {
+                        const res = await fetch('/api/sms/logs');
+                        if (!res.ok) return;
+                        const json = await res.json();
+                        const mapped = (json.data || [])
+                            .filter((log) => !currentPhone || log.phoneNumber === currentPhone)
+                            .map((log) => ({
+                                id: log.id,
+                                from: 'PayJA',
+                                text: log.message,
+                                time: new Date(log.sentAt).toLocaleTimeString('pt-PT'),
+                                phone: log.phoneNumber
+                            }));
+
+                        setSmsMessages((prev) => {
+                            const seen = new Set(prev.map((m) => m.id || `${m.from}-${m.text}-${m.time}`));
+                            const merged = [...prev];
+                            for (const msg of mapped) {
+                                const key = msg.id || `${msg.from}-${msg.text}-${msg.time}`;
+                                if (!seen.has(key)) {
+                                    seen.add(key);
+                                    merged.push(msg);
+                                }
+                            }
+                            return merged;
+                        });
+                    } catch (err) {
+                        console.warn('Falha ao buscar SMS:', err.message);
+                    }
+                };
+
+                fetchSmsLogs();
+                smsPollRef.current = setInterval(fetchSmsLogs, 5000);
+                return () => smsPollRef.current && clearInterval(smsPollRef.current);
+            }, [currentPhone]);
+
+            useEffect(() => {
+                // Limpa mensagens apenas quando o número atual muda
+                setSmsMessages([]);
+            }, [currentPhone]);
+
+            useEffect(() => {
+                if (contentRef.current) {
+                    contentRef.current.scrollTop = contentRef.current.scrollHeight;
+                }
+            }, [messages]);
+
+            const resetToWelcome = () => {
+                setSessionStep(null);
+                setSessionPhone(null);
+                setDraft({});
+                setInputValue('');
+                setMessages([{ text: welcomeMessage, kind: '' }]);
+            };
+
+            const sendSMS = (phone, text) => {
+                if (!phone) return;
+                const timestamp = new Date().toLocaleTimeString('pt-PT');
+                setSmsMessages(prev => [...prev, { from: 'PayJA', text, time: timestamp, phone }]);
+            };
+
+            const addMessage = (text, kind = '') => setMessages((prev) => [...prev, { text, kind }]);
+
+            const mainMenuMessage = (customer) => {
+                return `Txeneka Male!\n\n1. Solicitar empréstimo\n2. Meus empréstimos\n3. Ajuda`;
+            };
+
+            const waitingEligibilityMessage = () => `Registo confirmado.\n\nEstamos a aguardar a elegibilidade e limite do PayJA. Defina o limite na página apis.html e volte a marcar *898#.\n\nSessão finalizada.`;
+
+            const startSession = (phone) => {
+                setBusy(false);
+                setSessionPhone(phone);
+                setInputValue('');
+
+                let customer = findCustomer(phone);
+                if (!customer) {
+                    customer = upsertCustomer(phone, { status: 'new', loans: [] });
+                }
+
+                if (customer.status === 'otp_pending') {
+                    setMessages([{ text: 'Enviámos um OTP para validar o número.\n\nDigite o código recebido:', kind: '' }]);
+                    setSessionStep('OTP_ENTRY');
+                    setDraft({ otp: customer.pendingOtp });
+                    return;
+                }
+
+                if (customer.status === 'eligible') {
+                    setMessages([{ text: mainMenuMessage(customer), kind: '' }]);
+                    setSessionStep('MAIN_MENU');
+                    setDraft({});
+                    inputRef.current?.focus();
+                    return;
+                }
+
+                if (customer.status === 'registered') {
+                    setMessages([{ text: waitingEligibilityMessage(), kind: '' }]);
+                    setSessionStep(null);
+                    return;
+                }
+
+                setMessages([{ text: 'Txeneka Male!\n\nPara continuar precisamos de alguns dados:\n1. Iniciar registo\n2. Cancelar', kind: '' }]);
+                setSessionStep('REGISTER_START');
+                setDraft({});
+                inputRef.current?.focus();
+            };
+
+            const handleSend = () => {
+                if (!sessionStep || !inputValue.trim() || busy) return;
+                const userText = inputValue.trim();
+                setInputValue('');
+                addMessage('> ' + userText, 'user');
+                setBusy(true);
+
+                setTimeout(() => {
+                    processInput(userText);
+                    setBusy(false);
+                }, 150);
+            };
+
+            const processInput = (input) => {
+                const text = input.trim();
+                const customer = findCustomer(sessionPhone);
+
+                switch (sessionStep) {
+                    case 'REGISTER_START': {
+                        if (text === '1') {
+                            setSessionStep('ASK_NUIT');
+                            addMessage('Digite o seu NUIT (9 dígitos):');
+                        } else {
+                            addMessage('Sessão terminada.');
+                            setSessionStep(null);
+                        }
+                        return;
+                    }
+                    case 'ASK_NUIT': {
+                        if (!/^\d{9}$/.test(text)) {
+                            addMessage('NUIT inválido. Deve ter 9 dígitos.');
+                            return;
+                        }
+                        setDraft((prev) => ({ ...prev, nuit: text }));
+                        setSessionStep('ASK_NAME');
+                        addMessage('Digite o nome completo:');
+                        return;
+                    }
+                    case 'ASK_NAME': {
+                        if (text.length < 3) {
+                            addMessage('Nome muito curto.');
+                            return;
+                        }
+                        setDraft((prev) => ({ ...prev, name: text }));
+                        setSessionStep('ASK_BI');
+                        addMessage('Digite o número do BI:');
+                        return;
+                    }
+                    case 'ASK_BI': {
+                        if (text.length < 5) {
+                            addMessage('BI inválido.');
+                            return;
+                        }
+                        setDraft((prev) => ({ ...prev, bi: text }));
+                        setSessionStep('ASK_INSTITUTION');
+                        addMessage('Digite a instituição de trabalho:');
+                        return;
+                    }
+                    case 'ASK_INSTITUTION': {
+                        if (text.length < 2) {
+                            addMessage('Instituição inválida.');
+                            return;
+                        }
+
+                        const otp = generateOtp();
+                        const payload = {
+                            status: 'otp_pending',
+                            pendingOtp: otp,
+                            registrationData: { ...draft, institution: text, createdAt: new Date().toISOString() },
+                            loans: customer?.loans || [],
+                        };
+                        upsertCustomer(sessionPhone, payload);
+
+                        addMessage(`Enviámos um OTP para a sua mensagem.\n\nCódigo: ${otp}\n\nDigite o OTP para confirmar o registo:`);
+                        sendSMS(sessionPhone, `Txeneka Male\n\nSeu código de confirmação: ${otp}\n\nDigite este código no seu telemóvel para completar o registo.`);
+                        setSessionStep('OTP_ENTRY');
+                        setDraft({ otp });
+                        return;
+                    }
+                    case 'OTP_ENTRY': {
+                        const expected = draft.otp || customer?.pendingOtp;
+                        if (text !== expected) {
+                            addMessage('OTP inválido. Tente novamente.');
+                            return;
+                        }
+
+                        const data = customer?.registrationData || draft;
+                        const finalData = {
+                            status: 'registered',
+                            pendingOtp: null,
+                            registrationData: data,
+                            eligibility: null,
+                            loans: customer?.loans || [],
+                        };
+                        upsertCustomer(sessionPhone, finalData);
+
+                        persistCustomerToApi({
+                            phoneNumber: sessionPhone,
+                            name: data.name || '',
+                            nuit: data.nuit || '',
+                            bi: data.bi || '',
+                            institution: data.institution || '',
+                            createdAt: data.createdAt,
+                        });
+
+                        sendSMS(sessionPhone, `✓ Registo confirmado com sucesso!\n\nCaro ${data.name},\n\nSeu registo no Txeneka Male foi concluído.\n\nAguarde a confirmação de elegibilidade e limite de crédito.`);
+                        addMessage('Registo confirmado!\n\nAguardando elegibilidade e limite do PayJA. Volte a marcar *898# após a integração.');
+                        setSessionStep(null);
+                        return;
+                    }
+                    case 'MAIN_MENU': {
+                        if (text === '1') {
+                            const limit = customer?.eligibility?.limit || 0;
+                            const min = 1000;
+                            if (!limit || limit < min) {
+                                addMessage('Limite indisponível para solicitação.');
+                                setSessionStep(null);
+                                return;
+                            }
+                            setDraft({ min, limit });
+                            setSessionStep('LOAN_AMOUNT');
+                            addMessage(`Digite o valor entre ${formatMoney(min)} e ${formatMoney(limit)}:`);
+                            return;
+                        }
+                        if (text === '2') {
+                            const loans = customer?.loans || [];
+                            if (!loans.length) {
+                                addMessage('Ainda não tem empréstimos.');
+                            } else {
+                                const list = loans
+                                    .slice(-3)
+                                    .map((l, idx) => `${idx + 1}. ${formatMoney(l.amount)} - ${l.status}`)
+                                    .join('\n');
+                                addMessage('Meus empréstimos:\n\n' + list);
+                            }
+                            setSessionStep(null);
+                            return;
+                        }
+                        if (text === '3') {
+                            addMessage('Ajuda: ligue 800-PAYJA ou WhatsApp 84 123 4567.');
+                            setSessionStep(null);
+                            return;
+                        }
+                        addMessage('Opção inválida.');
+                        return;
+                    }
+                    case 'LOAN_AMOUNT': {
+                        const value = Number(text);
+                        const min = draft.min || 0;
+                        const limit = draft.limit || 0;
+                        if (!value || value < min) {
+                            addMessage(`Valor abaixo do mínimo (${formatMoney(min)}).`);
+                            return;
+                        }
+                        if (value > limit) {
+                            addMessage(`Valor excede o limite (${formatMoney(limit)}).`);
+                            return;
+                        }
+                        setDraft((prev) => ({ ...prev, amount: value }));
+                        setSessionStep('LOAN_CONFIRM');
+                        addMessage(`Valor escolhido: ${formatMoney(value)}\nPrazo: 30 dias (1 mês)\nJuros: 15%\n\n1. Confirmar\n2. Cancelar`);
+                        return;
+                    }
+                    case 'LOAN_CONFIRM': {
+                        if (text === '2') {
+                            addMessage('Solicitação cancelada.');
+                            setSessionStep(null);
+                            return;
+                        }
+                        if (text !== '1') {
+                            addMessage('Escolha 1 para confirmar ou 2 para cancelar.');
+                            return;
+                        }
+                        setSessionStep('LOAN_REASON_CHOICES');
+                        addMessage('Por que você precisa do empréstimo?\n1. Negócio\n2. Educação\n3. Saúde\n4. Emergência\n5. Outro');
+                        return;
+                    }
+                    case 'LOAN_REASON_CHOICES': {
+                        const map = {
+                            '1': 'Negócio',
+                            '2': 'Educação',
+                            '3': 'Saúde',
+                            '4': 'Emergência',
+                            '5': 'Outro'
+                        };
+                        const reason = map[text];
+                        if (!reason) {
+                            addMessage('Escolha 1, 2, 3, 4 ou 5.');
+                            return;
+                        }
+
+                        setDraft((prev) => ({ ...prev, reason }));
+                        setSessionStep('LOAN_BANK_SELECT');
+                        addMessage('Escolha o banco para desembolso:\n1. Banco GHW\n2. Banco ZD');
+                        return;
+                    }
+                    case 'LOAN_BANK_SELECT': {
+                        const map = { '1': 'Banco GHW', '2': 'Banco ZD' };
+                        const bank = map[text];
+                        if (!bank) {
+                            addMessage('Escolha 1 ou 2 para selecionar o banco.');
+                            return;
+                        }
+
+                        setDraft((prev) => ({ ...prev, bank }));
+                        setSessionStep('LOAN_TERMS_FINAL');
+                        const total = Math.round((draft.amount || 0) * 1.15);
+                        addMessage(`Valor: ${formatMoney(draft.amount)}\nJuros: 15%\nTotal a pagar: ${formatMoney(total)}\n\nTermos e Condições:\n1. A aprovação do crédito é condicionada à análise de risco.\n2. Empréstimos solicitados até o dia 24 são cobrados no mesmo mês. Solicitações feitas a partir do dia 25 têm a cobrança efetuada no ciclo do mês seguinte.\n\n1. Confirmar\n2. Cancelar`);
+                        return;
+                    }
+                    case 'LOAN_TERMS_FINAL': {
+                        if (text === '2') {
+                            addMessage('Solicitação cancelada.');
+                            setSessionStep(null);
+                            return;
+                        }
+                        if (text !== '1') {
+                            addMessage('Escolha 1 para confirmar ou 2 para cancelar.');
+                            return;
+                        }
+
+                        const loan = {
+                            amount: draft.amount,
+                            bank: draft.bank,
+                            reason: draft.reason || 'N/A',
+                            status: 'ENVIADO_PAYJA',
+                            interest: 15,
+                            term: '30 dias',
+                            createdAt: new Date().toISOString(),
+                        };
+
+                        const updated = upsertCustomer(sessionPhone, (c) => ({
+                            ...c,
+                            loans: [...(c.loans || []), loan],
+                        }));
+
+                        // Persist loan to API
+                        (async () => {
+                            try {
+                                const customer = findCustomer(sessionPhone);
+                                await fetch('/api/loans', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        phoneNumber: sessionPhone,
+                                        customerName: customer?.registrationData?.name || customer?.name || sessionPhone,
+                                        amount: draft.amount,
+                                        term: '30 dias',
+                                        interest: 15,
+                                        reason: draft.reason,
+                                        bank: draft.bank,
+                                        status: 'pending'
+                                    })
+                                });
+                            } catch (err) {
+                                console.warn('Erro ao gravar empréstimo:', err);
+                            }
+                        })();
+
+                        sendSMS(sessionPhone, `💰 Solicitação de Empréstimo\n\nValor: ${formatMoney(draft.amount)}\nJuros: 15% em 30 dias\nMotivo: ${draft.reason || 'N/A'}\nBanco: ${draft.bank}\n\nSua solicitação foi encaminhada ao PayJA. Aguarde a resposta.`);
+                        addMessage('Solicitação encaminhada. Receberá o valor em até 1 minuto.');
+                        setSessionStep(null);
+                        return;
+                    }
+                    default:
+                        addMessage('Sessão finalizada.');
+                        setSessionStep(null);
+                }
+            };
+
+            const handleKeyDown = (evt) => {
+                if (evt.key === 'Enter') handleSend();
+            };
+
+            // Expor para painel de controle
+            window.startUSSD = async () => {
+                const phone = document.getElementById('phoneInput').value || '875551234';
+                setCurrentPhone(phone);
+                document.getElementById('phone').textContent = phone;
+                await hydrateCustomerFromApi(phone);
+                startSession(phone);
+            };
+
+            return e('div', { className: 'smartphone' },
+                e('div', { className: 'speaker' }),
+                e('div', { className: 'screen' },
+                    e('div', { className: 'status-bar' },
+                        e('span', null, time),
+                        e('span', null, '📶 📡 🔋')
+                    ),
+                    e('div', { className: 'ussd-header' },
+                        e('h1', null, '☎️ USSD Simulator'),
+                        e('p', null, 'Disque *898# para iniciar')
+                    ),
+                    e('div', { className: 'screen-content', ref: contentRef },
+                        messages.map((msg, idx) =>
+                            e('div', { key: idx, className: 'message-box' }, msg.text)
+                        )
+                    ),
+                    e('div', { className: 'input-area' },
+                        e('input', {
+                            type: 'text',
+                            className: 'ussd-input',
+                            placeholder: sessionStep ? 'Digite aqui...' : 'Inicie com *898#',
+                            value: inputValue,
+                            onChange: (evt) => setInputValue(evt.target.value),
+                            onKeyDown: handleKeyDown,
+                            disabled: !sessionStep || busy,
+                            ref: inputRef
+                        }),
+                        e('button', {
+                            className: 'send-btn',
+                            onClick: handleSend,
+                            disabled: !sessionStep || busy
+                        }, '➤')
+                    ),
+                    e('div', { className: 'bottom-nav' },
+                        e('div', { className: 'nav-item', onClick: resetToWelcome }, '⌘'),
+                        e('div', { 
+                            className: 'nav-item',
+                            onClick: () => setShowSmsModal(true)
+                        }, 
+                            '✉',
+                            smsMessages.length > 0 && e('div', { className: 'sms-badge' }, smsMessages.length)
+                        ),
+                        e('div', { className: 'nav-item' }, '👥'),
+                        e('div', { className: 'nav-item' }, '≡')
+                    ),
+                    showSmsModal && e('div', { className: 'sms-modal', onClick: () => setShowSmsModal(false) },
+                        e('div', { className: 'sms-modal-content', onClick: (evt) => evt.stopPropagation() },
+                            e('div', { className: 'sms-modal-header' },
+                                e('span', {}, `Mensagens (${smsMessages.length})`),
+                                e('button', { 
+                                    className: 'sms-modal-close',
+                                    onClick: () => setShowSmsModal(false)
+                                }, '✕')
+                            ),
+                            e('div', { className: 'sms-messages' },
+                                smsMessages.length === 0 
+                                    ? e('div', { style: { textAlign: 'center', color: '#999', padding: '30px 20px' } }, 'Nenhuma mensagem')
+                                    : smsMessages.map((msg, idx) => 
+                                        e('div', { className: 'sms-item', key: msg.id || idx },
+                                            e('div', { className: 'sms-from' }, msg.from),
+                                            e('div', { className: 'sms-text' }, msg.text),
+                                            e('div', { className: 'sms-time' }, msg.time)
+                                        )
+                                    )
+                            )
+                        )
+                    )
+                )
+            );
+        }
+
+
+        // ==================== RENDER ====================
+        const root = ReactDOM.createRoot(document.getElementById('phone-root'));
+        root.render(e(SmartphoneApp));
+
+        // ==================== VANILLA JS PAINEL ====================
+        async function testAPI() {
+            try {
+                const res = await fetch('http://155.138.228.89:3001/api/health');
+                const data = await res.json();
+                document.getElementById('status').textContent = '🟢 Online';
+                alert('✓ API Online!\n\n' + data.service);
+            } catch(e) {
+                document.getElementById('status').textContent = '🟡 Modo Simulação';
+                alert('Modo simulação ativo. Integração local disponível.');
+            }
+        }
+
+        function openCustomersDB() {
+            window.location.href = '/customers.html';
+        }
+
+        window.testAPI = testAPI;
+        window.openCustomersDB = openCustomersDB;
+
+        // Initial status
+        testAPI();
+    </script>
+</body>
+</html>

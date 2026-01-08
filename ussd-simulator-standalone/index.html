@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-MZ">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador USSD - PayJA</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        /* ... (todo o CSS fornecido acima) ... */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- SMARTPHONE SIMULADOR (REACT) -->
+        <div id="phone-root"></div>
+
+        <!-- PAINEL DE CONTROLE (VANILLA JS) -->
+        <div class="control-panel">
+            <div class="panel-header">
+                <h1><i class="fas fa-gamepad"></i> Painel de Controle</h1>
+                <p>Simulador USSD Standalone - PayJA</p>
+            </div>
+
+            <div class="info-box">
+                <strong><i class="fas fa-database"></i> Base de Dados Local</strong>
+                <p>Este simulador possui seu próprio banco de dados SQLite que armazena todos os números registrados, sessões USSD e histórico de transações.</p>
+            </div>
+
+            <div class="status-card">
+                <div class="status-row">
+                    <span class="status-label"><i class="fas fa-signal"></i> Status da Conexão</span>
+                    <span class="status-value" id="status">Verificando...</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label"><i class="fas fa-phone"></i> Telefone Atual</span>
+                    <span class="status-value" id="phone">875551234</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label"><i class="fas fa-link"></i> Sessão Ativa</span>
+                    <span class="status-value" id="session">Nenhuma</span>
+                </div>
+            </div>
+
+            <button class="action-button" onclick="window.startUSSD()">
+                <i class="fas fa-phone-alt"></i> *898# - Solicitar Empréstimo
+            </button>
+            <button class="action-button action-secondary" onclick="window.location.href='apis.html'">
+                <i class="fas fa-plug"></i> Gerenciar APIs
+            </button>
+            <button class="action-button action-green" onclick="window.openCustomersDB()">
+                <i class="fas fa-users"></i> Ver Clientes Registados
+            </button>
+
+            <div class="section-title"><i class="fas fa-cogs"></i> Configuração</div>
+
+            <div class="input-group">
+                <label class="input-label"><i class="fas fa-mobile-alt"></i> Número de Telefone</label>
+                <input 
+                    type="text" 
+                    class="config-input" 
+                    id="phoneInput" 
+                    value="875551234"
+                    placeholder="Ex: 868801234"
+                />
+            </div>
+
+            <div class="input-group">
+                <label class="input-label"><i class="fas fa-server"></i> URL da API</label>
+                <input 
+                    type="text" 
+                    class="config-input" 
+                    id="apiUrl" 
+                    value="http://155.138.228.89:3001"
+                    readonly
+                />
+            </div>
+        </div>
+    </div>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <script>
+        /* ... (todo o JS fornecido acima) ... */
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="pt-MZ">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador USSD - PayJA</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* ... (todo o CSS fornecido acima) ... */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- SMARTPHONE SIMULADOR (REACT) -->
+        <div id="phone-root"></div>
+
+        <!-- PAINEL DE CONTROLE (VANILLA JS) -->
+        <div class="control-panel">
+            <div class="panel-header">
+                <h1><i class="fas fa-gamepad"></i> Painel de Controle</h1>
+                <p>Simulador USSD Standalone - PayJA</p>
+            </div>
+
+            <div class="info-box">
+                <strong><i class="fas fa-database"></i> Base de Dados Local</strong>
+                <p>Este simulador possui seu próprio banco de dados SQLite que armazena todos os números registrados, sessões USSD e histórico de transações.</p>
+            </div>
+
+            <div class="status-card">
+                <div class="status-row">
+                    <span class="status-label"><i class="fas fa-signal"></i> Status da Conexão</span>
+                    <span class="status-value" id="status">Verificando...</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label"><i class="fas fa-phone"></i> Telefone Atual</span>
+                    <span class="status-value" id="phone">875551234</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label"><i class="fas fa-link"></i> Sessão Ativa</span>
+                    <span class="status-value" id="session">Nenhuma</span>
+                </div>
+            </div>
+
+            <button class="action-button" onclick="window.startUSSD()">
+                <i class="fas fa-phone-alt"></i> *898# - Solicitar Empréstimo
+            </button>
+            <button class="action-button action-secondary" onclick="window.location.href='apis.html'">
+                <i class="fas fa-plug"></i> Gerenciar APIs
+            </button>
+            <button class="action-button action-green" onclick="window.openCustomersDB()">
+                <i class="fas fa-users"></i> Ver Clientes Registados
+            </button>
+
+            <div class="section-title"><i class="fas fa-cogs"></i> Configuração</div>
+
+            <div class="input-group">
+                <label class="input-label"><i class="fas fa-mobile-alt"></i> Número de Telefone</label>
+                <input 
+                    type="text" 
+                    class="config-input" 
+                    id="phoneInput" 
+                    value="875551234"
+                    placeholder="Ex: 868801234"
+                />
+            </div>
+
+            <div class="input-group">
+                <label class="input-label"><i class="fas fa-server"></i> URL da API</label>
+                <input 
+                    type="text" 
+                    class="config-input" 
+                    id="apiUrl" 
+                    value="http://155.138.228.89:3001"
+                    readonly
+                />
+            </div>
+        </div>
+    </div>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <script>
+        /* ... (todo o JS fornecido acima) ... */
+    </script>
+</body>
+</html>

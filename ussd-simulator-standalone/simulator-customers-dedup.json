@@ -1,0 +1,58 @@
+[
+  {
+    "phoneNumber": "875551234",
+    "status": "registered",
+    "loans": [],
+    "pendingOtp": null,
+    "registrationData": {
+      "nuit": "100567890",
+      "name": "Ana Isabel Cossa",
+      "bi": "4567890123456L",
+      "institution": "EDM",
+      "createdAt": "2025-12-17T09:18:52.475Z"
+    },
+    "eligibility": null
+  },
+  {
+    "phoneNumber": "862345678",
+    "status": "registered",
+    "loans": [],
+    "pendingOtp": null,
+    "registrationData": {
+      "nuit": "100345678",
+      "name": "Maria Santos Machado",
+      "bi": "2345678901234M",
+      "institution": "Hospital Central de Maputo",
+      "createdAt": "2025-12-23T08:01:27.744Z"
+    },
+    "eligibility": null
+  },
+  {
+    "phoneNumber": "865678901",
+    "status": "registered",
+    "loans": [],
+    "pendingOtp": null,
+    "registrationData": {
+      "nuit": "100678901",
+      "name": "Pedro Manuel Sitoe",
+      "bi": "5678901234567K",
+      "institution": "Ministério da Saúde",
+      "createdAt": "2025-12-23T18:02:54.829Z"
+    },
+    "eligibility": null
+  },
+  {
+    "phoneNumber": "871234567\t",
+    "status": "registered",
+    "loans": [],
+    "pendingOtp": null,
+    "registrationData": {
+      "nuit": "100234567",
+      "name": "João Pedro da Silva",
+      "bi": "1234567890123N",
+      "institution": "Ministério da Educação",
+      "createdAt": "2025-12-23T19:33:00.735Z"
+    },
+    "eligibility": null
+  }
+]
