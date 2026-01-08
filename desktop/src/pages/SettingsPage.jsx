@@ -16,6 +16,8 @@ const { TextArea } = Input;
 
 function SettingsPage() {
   const [loading, setLoading] = useState(false);
+  const [loadingResetLoans, setLoadingResetLoans] = useState(false);
+  const [loadingResetCustomers, setLoadingResetCustomers] = useState(false);
   const [users, setUsers] = useState([]);
   const [userModalVisible, setUserModalVisible] = useState(false);
   const [apiModalVisible, setApiModalVisible] = useState(false);
@@ -263,6 +265,30 @@ function SettingsPage() {
     }
   };
 
+  const handleResetLoans = async () => {
+    try {
+      setLoadingResetLoans(true);
+      await api.post('/admin/reset-loans');
+      message.success('Empréstimos e registros relacionados apagados.');
+    } catch (error) {
+      message.error('Erro ao apagar empréstimos');
+    } finally {
+      setLoadingResetLoans(false);
+    }
+  };
+
+  const handleResetCustomers = async () => {
+    try {
+      setLoadingResetCustomers(true);
+      await api.post('/admin/reset-customers');
+      message.success('Clientes e dados relacionados apagados.');
+    } catch (error) {
+      message.error('Erro ao apagar clientes');
+    } finally {
+      setLoadingResetCustomers(false);
+    }
+  };
+
   return (
     <div>
       <h1>Definições</h1>
@@ -374,23 +400,43 @@ function SettingsPage() {
                 <p><strong>ATENÇÃO:</strong> Esta ação não pode ser desfeita!</p>
               </div>
 
-              <Popconfirm
-                title="Tem certeza que deseja resetar os dados dos clientes?"
-                description="Todos os dados de clientes registados serão permanentemente removidos."
-                onConfirm={handleResetSimulators}
-                okText="Sim, resetar"
-                cancelText="Cancelar"
-                okButtonProps={{ danger: true }}
-              >
-                <Button 
-                  danger 
-                  icon={<ReloadOutlined />}
-                  size="large"
-                  loading={loading}
+              <Space>
+                <Popconfirm
+                  title="Tem certeza que deseja apagar apenas os empréstimos de teste?"
+                  description="Esta ação removerá empréstimos e registros relacionados (pagamentos, prestações, transações)."
+                  onConfirm={handleResetLoans}
+                  okText="Sim, apagar"
+                  cancelText="Cancelar"
+                  okButtonProps={{ danger: true }}
                 >
-                  Resetar Dados dos Clientes
-                </Button>
-              </Popconfirm>
+                  <Button 
+                    danger 
+                    icon={<ReloadOutlined />}
+                    size="large"
+                    loading={loadingResetLoans}
+                  >
+                    Resetar Empréstimos
+                  </Button>
+                </Popconfirm>
+
+                <Popconfirm
+                  title="Tem certeza que deseja apagar os clientes de teste?"
+                  description="Esta ação removerá clientes, empréstimos e dados relacionados."
+                  onConfirm={handleResetCustomers}
+                  okText="Sim, apagar"
+                  cancelText="Cancelar"
+                  okButtonProps={{ danger: true }}
+                >
+                  <Button 
+                    danger 
+                    icon={<ReloadOutlined />}
+                    size="large"
+                    loading={loadingResetCustomers}
+                  >
+                    Resetar Clientes
+                  </Button>
+                </Popconfirm>
+              </Space>
             </Space>
           </Card>
         </TabPane>

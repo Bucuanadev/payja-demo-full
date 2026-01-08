@@ -1,0 +1,12 @@
+HTTP/1.1 404 Not Found
+X-Powered-By: Express
+Vary: Origin
+Access-Control-Allow-Credentials: true
+Content-Type: application/json; charset=utf-8
+Content-Length: 86
+ETag: W/"56-WUVb5Obsp8lJSEDU99l0OMAzbh8"
+Date: Tue, 06 Jan 2026 11:29:45 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"message":"Cannot GET /integrations/ussd/loans","error":"Not Found","statusCode":404}

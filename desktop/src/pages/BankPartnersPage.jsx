@@ -381,7 +381,7 @@ export default function BankPartnersPage() {
               { type: 'url', message: 'URL inválida' },
             ]}
           >
-            <Input placeholder="http://localhost:4500" />
+            <Input placeholder="http://155.138.228.89:4500" />
           </Form.Item>
 
           <Form.Item

@@ -1,70 +1,78 @@
-# PayJA Demo - Serviços Principais
+# PayJA Demo Full Project
 
-Monorepo com os serviços usados nas demos PayJA. Serviços críticos:
-- payja-backend (NestJS + Prisma)
-- ussd-simulator (Express + Prisma + frontend embarcado)
-- banco-mock-backend (API simulada)
-- banco-mock-frontend (painel do banco)
-- payja-desktop (painel web/electron)
+Este repositório contém os três projetos principais do ecossistema PayJA:
+1.  **PayJA (Backend & Frontend)**
+2.  **USSD Simulator**
+3.  **Banco Mock (Backend & Frontend)**
 
-## Requisitos
-- Node.js 18+
-- npm
-- PM2 instalado globalmente: `npm install -g pm2`
+## Estrutura do Projeto
 
-## Instalação Rápida
-Execute na raiz do repo:
+- `backend/`: API principal do PayJA (NestJS).
+- `desktop/`: Frontend principal do PayJA (Vite/React).
+- `ussd-simulator-standalone/`: Simulador de USSD (Node.js/Express).
+- `banco-mock/backend/`: API do Banco Mock.
+- `banco-mock/frontend/`: Frontend do Banco Mock.
 
-```powershell
-# Backend PayJA
-cd backend
-npm install
-npm run prisma:generate
-npm run build
+## Pré-requisitos
+
+- Node.js (v18 ou superior)
+- npm ou yarn
+- PM2 (para gerenciamento de processos)
+
+## Instruções de Deploy
+
+### 1. Clonar o Repositório
+```bash
+git clone https://github.com/Bucuanadev/payja-demo-full.git
+cd payja-demo-full
+```
+
+### 2. Instalar Dependências
+Você deve instalar as dependências em cada pasta do projeto:
+
+```bash
+# PayJA Backend
+cd backend && npm install && npx prisma generate && cd ..
+
+# PayJA Frontend
+cd desktop && npm install && cd ..
 
 # USSD Simulator
-cd ../ussd-simulator-standalone
-npm install
+cd ussd-simulator-standalone && npm install && cd ..
 
-# Banco Mock (API)
-cd ../banco-mock/backend
-npm install
+# Banco Mock Backend
+cd banco-mock/backend && npm install && cd ..
 
-# Banco Mock (Frontend)
-cd ../frontend
-npm install
-
-# Desktop (painel)
-cd ../../desktop
-npm install
+# Banco Mock Frontend
+cd banco-mock/frontend && npm install && cd ..
 ```
 
-## Subir tudo com PM2
-Na raiz do repo (após instalar deps e build do backend):
+### 3. Iniciar com PM2
+O projeto já inclui arquivos de configuração do PM2 para facilitar a execução:
 
-```powershell
-pm2 start pm2.payja-backend.config.js         # porta 3000
-pm2 start pm2.ussd-simulator.config.js        # porta 3001
-pm2 start pm2.banco-mock-backend.config.js    # porta 4500
-pm2 start pm2.frontends.config.js             # banco frontend 4100, desktop 5173
+```bash
+pm2 start pm2.ussd-simulator.config.js
+pm2 start pm2.payja-backend.config.js
+pm2 start pm2.payja-frontend.config.js
+pm2 start pm2.banco-mock-backend.config.js
+pm2 start pm2.banco-mock-frontend.config.js
 ```
 
-Comandos úteis:
-- `pm2 list` para status
-- `pm2 logs <name>` para logs
-- `pm2 restart <name>` ou `pm2 restart all`
-- `pm2 stop <name>` / `pm2 delete <name>`
+### 4. Portas Utilizadas
+Certifique-se de que as seguintes portas estão abertas no seu firewall:
+- **3000**: PayJA Backend
+- **5173**: PayJA Frontend
+- **3001**: USSD Simulator
+- **4500**: Banco Mock Backend
+- **4100**: Banco Mock Frontend
 
-## Portas e Endpoints Principais
-- payja-backend: 3000 (NestJS API)
-- ussd-simulator: 3001 (API + páginas public/index.html, customers.html)
-- banco-mock-backend: 4500 (mock bancário)
-- banco-mock-frontend: 4100 (painel mock)
-- payja-desktop: 5173 (versão web da app desktop)
+## Manutenção
+Para visualizar os logs:
+```bash
+pm2 logs
+```
 
-## READMEs por Serviço
-- backend: ./backend/README.md
-- ussd-simulator-standalone: ./ussd-simulator-standalone/README.md
-- banco-mock backend: ./banco-mock/backend/README.md
-- banco-mock frontend: ./banco-mock/frontend/README.md
-- desktop: ./desktop/README.md
+Para salvar a lista de processos para reinicialização automática:
+```bash
+pm2 save
+```

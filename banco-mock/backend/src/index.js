@@ -63,7 +63,7 @@ app.use((err, req, res, next) => {
 db.init();
 
 // Iniciar servidor
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🏦 ${process.env.BANCO_NOME} - Sistema Mock`);
   console.log(`📡 Servidor rodando em http://localhost:${PORT}`);
   console.log(`🔑 API Key: ${process.env.API_KEY}`);

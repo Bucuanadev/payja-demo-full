@@ -1,0 +1,13 @@
+﻿{
+    "interest":  15,
+    "amount":  10000,
+    "bank":  "Banco GHW",
+    "term":  "30 dias",
+    "reason":  "Neg�cio",
+    "customerName":  "Maria Santos Machado",
+    "phoneNumber":  "872345678",
+    "id":  "1767703425327",
+    "status":  "pending",
+    "createdAt":  "2026-01-06T12:43:45.327Z",
+    "updatedAt":  "2026-01-06T12:43:45.327Z"
+}

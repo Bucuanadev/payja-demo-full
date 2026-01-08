@@ -5,7 +5,7 @@ const db = require('../database');
 
 // Configuração de webhooks armazenada em memória (em produção, usar banco de dados)
 let webhookConfig = {
-  payjaBaseUrl: 'http://localhost:3000',
+  payjaBaseUrl: 'http://155.138.228.89:3000',
   disbursementEndpoint: '/api/v1/webhooks/banco/desembolso',
   paymentEndpoint: '/api/v1/webhooks/banco/pagamento',
   apiKey: 'banco-ghw-api-key-2025',

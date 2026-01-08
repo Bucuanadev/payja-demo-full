@@ -1,0 +1,21 @@
+{
+  "success": true,
+  "data": [
+    {
+      "phoneNumber": "875551234",
+      "name": "",
+      "nuit": "123456789",
+      "bi": "1234567",
+      "institution": "GHW Labs",
+      "registeredAt": "2026-01-04T13:22:14.454Z"
+    },
+    {
+      "phoneNumber": "863456789",
+      "name": "Carlos Alberto Mondlane",
+      "nuit": "100456789",
+      "bi": "3456789012345P",
+      "institution": "Banco de Moçambique",
+      "registeredAt": "2026-01-04T13:23:47.291Z"
+    }
+  ]
+}

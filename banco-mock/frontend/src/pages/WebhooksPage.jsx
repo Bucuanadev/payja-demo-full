@@ -32,7 +32,7 @@ const { TextArea } = Input;
 
 export default function WebhooksPage() {
   const [config, setConfig] = useState({
-    payjaBaseUrl: 'http://localhost:3000',
+    payjaBaseUrl: 'http://155.138.228.89:3000',
     disbursementEndpoint: '/api/v1/webhooks/banco/desembolso',
     paymentEndpoint: '/api/v1/webhooks/banco/pagamento',
     apiKey: '',
@@ -285,7 +285,7 @@ export default function WebhooksPage() {
                 { type: 'url', message: 'URL inválida' },
               ]}
             >
-              <Input placeholder="http://localhost:3000" />
+              <Input placeholder="http://155.138.228.89:3000" />
             </Form.Item>
 
             <Row gutter={16}>

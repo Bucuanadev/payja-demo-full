@@ -6,7 +6,7 @@ const db = require('../database');
 const router = express.Router();
 
 // Configuração
-const PAYJA_BASE_URL = process.env.PAYJA_API_URL || 'http://localhost:3000';
+const PAYJA_BASE_URL = process.env.PAYJA_API_URL || 'http://155.138.228.89:3000';
 const API_PREFIX = process.env.PAYJA_API_PREFIX || '/api/v1';
 // Ensures we never double-apply the API prefix (env may already include it)
 const buildPayjaUrl = (path = '/') => {

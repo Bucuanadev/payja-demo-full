@@ -28,6 +28,7 @@
     "@nestjs/platform-express": "^10.3.0",
     "@nestjs/schedule": "^6.1.0",
     "@prisma/client": "^5.8.0",
+    "sqlite3": "^5.1.6",
     "axios": "^1.13.2",
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",

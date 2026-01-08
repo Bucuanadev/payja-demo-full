@@ -56,6 +56,7 @@ model Customer {
   // Status
   verified    Boolean  @default(false)
   blocked     Boolean  @default(false)
+  isActive    Boolean  @default(true)
   
   // Timestamps
   createdAt   DateTime @default(now())

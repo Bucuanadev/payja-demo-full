@@ -7,14 +7,12 @@ export class PayjaSyncController {
 
   @Post('sync-new-customers')
   async syncNewCustomers(@Body() body: any) {
-    const result = await this.service.syncNewCustomers();
-    return result;
+    return this.service.syncNewCustomers();
   }
 
   @Post('validate-customer/:phoneNumber')
   async validateCustomer(@Param('phoneNumber') phoneNumber: string) {
-    const result = await this.service.validateAndUpdateCustomer(phoneNumber);
-    return result;
+    return this.service.validateAndUpdateCustomer(phoneNumber);
   }
 
   @Get('customer-status/:phoneNumber')
@@ -24,8 +22,7 @@ export class PayjaSyncController {
 
   @Post('sync-loans')
   async syncLoans(@Body() body: any) {
-    const result = await this.service.syncLoans();
-    return result;
+    return this.service.syncLoans();
   }
 
   @Get('loans')
@@ -36,13 +33,17 @@ export class PayjaSyncController {
 
   @Post('loans/:id/disburse')
   async confirmDisbursal(@Param('id') loanId: string, @Body() body: any) {
-    const result = await this.service.confirmDisbursal(loanId, body);
-    return result;
+    return this.service.confirmDisbursal(loanId, body);
   }
 
   @Patch('loans/:id/disburse')
   async confirmDisbursalPatch(@Param('id') loanId: string, @Body() body: any) {
-    const result = await this.service.confirmDisbursal(loanId, body);
-    return result;
+    return this.service.confirmDisbursal(loanId, body);
+  }
+
+  // Manual trigger to reconcile all customers with bank data
+  @Post('reconcile-customers')
+  async reconcileCustomers() {
+    return this.service.reconcileAllCustomers();
   }
 }

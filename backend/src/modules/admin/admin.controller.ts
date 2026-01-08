@@ -17,6 +17,16 @@ export class AdminController {
     return this.adminService.resetTestData();
   }
 
+  @Post('reset-customers')
+  async resetCustomers() {
+    return this.adminService.resetCustomers();
+  }
+
+  @Post('reset-loans')
+  async resetLoans() {
+    return this.adminService.resetLoans();
+  }
+
   @Get('customers')
   async getCustomers(@Query() filters: any) {
     return this.adminService.getCustomers(filters);

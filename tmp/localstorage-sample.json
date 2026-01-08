@@ -1,0 +1,12 @@
+{
+  "customers": [
+    {
+      "phoneNumber": "863456789",
+      "name": "Carlos Alberto Mondlane",
+      "nuit": "100456789",
+      "biNumber": "3456789012345P",
+      "institution": "Banco de Moçambique",
+      "verified": false
+    }
+  ]
+}

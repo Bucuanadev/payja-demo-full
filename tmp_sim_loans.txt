@@ -1,0 +1,1 @@
+[{"phoneNumber":"872345678","customerName":"Maria Santos Machado","amount":10000,"term":"30 dias","interest":15,"reason":"Negócio","bank":"Banco GHW","status":"pending","id":"1767695549882","createdAt":"2026-01-06T10:32:29.883Z"}]

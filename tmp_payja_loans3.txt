@@ -1,0 +1,12 @@
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Vary: Origin
+Access-Control-Allow-Credentials: true
+Content-Type: application/json; charset=utf-8
+Content-Length: 21
+ETag: W/"15-UxRglZP01jGkw/nEQ6wM3+gOxAw"
+Date: Tue, 06 Jan 2026 11:33:31 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"count":0,"data":[]}

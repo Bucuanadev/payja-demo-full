@@ -14,17 +14,16 @@ function CustomersPage() {
 
 
   useEffect(() => {
-    // Load main customers then automatically import USSD customers
+    // Load main customers; loadCustomers will also import USSD customers
     (async () => {
       await loadCustomers();
-      await loadUssdCustomers();
     })();
   }, []);
 
   const loadUssdCustomers = async () => {
     setLoadingUssd(true);
     try {
-      const response = await fetch('http://localhost:3001/api/payja/ussd/new-customers');
+      const response = await fetch('http://155.138.228.89:3001/api/payja/ussd/new-customers');
       if (!response.ok) throw new Error('Erro ao buscar novos clientes USSD');
       const data = await response.json();
       // normalize incoming USSD customers and merge into main customers list
@@ -55,8 +54,13 @@ function CustomersPage() {
           const key = n.phoneNumber || n.id;
           if (!key) continue;
           if (byPhone[key]) {
-            // merge and prefer simulator-provided fields when present
-            byPhone[key] = { ...byPhone[key], ...n, name: n.name || byPhone[key].name };
+            // merge but preserve backend `verified` when already verified
+            byPhone[key] = {
+              ...byPhone[key],
+              ...n,
+              name: n.name || byPhone[key].name,
+              verified: (byPhone[key].verified === true) || !!n.verified,
+            };
           } else {
             byPhone[key] = n;
           }
@@ -93,6 +97,12 @@ function CustomersPage() {
         };
       });
       setCustomers(normalized);
+      // After loading main customers, also fetch USSD/new customers and merge
+      try {
+        await loadUssdCustomers();
+      } catch (e) {
+        // swallow - loadUssdCustomers already shows notifications
+      }
     } catch (error) {
       console.error('Error loading customers:', error);
     } finally {
