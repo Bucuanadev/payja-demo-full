@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Tag, Button, message, Modal, Form, Input, Select, InputNumber, Space, Divider } from 'antd';
-import { ReloadOutlined, DollarOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { ReloadOutlined, DollarOutlined, ThunderboltOutlined, DeleteOutlined } from '@ant-design/icons';
 import api from '../services/api';
 
 const DesembolsosPage = () => {
@@ -27,6 +27,26 @@ const DesembolsosPage = () => {
     } catch (error) {
       console.error('Erro ao carregar clientes:', error);
     }
+  };
+
+  const handleResetDesembolsos = () => {
+    Modal.confirm({
+      title: '⚠️ Confirmar Reset',
+      content: 'Tem certeza que deseja limpar TODOS os dados de desembolsos? Esta ação não pode ser desfeita.',
+      okText: 'Sim, Limpar',
+      okType: 'danger',
+      cancelText: 'Cancelar',
+      onOk: async () => {
+        try {
+          await api.post('/payja-loans/reset');
+          message.success('Todos os desembolsos foram removidos com sucesso!');
+          setDesembolsos([]);
+          loadDesembolsos();
+        } catch (error) {
+          message.error(error.response?.data?.message || 'Erro ao limpar desembolsos');
+        }
+      },
+    });
   };
 
   const loadDesembolsos = async () => {
@@ -219,6 +239,14 @@ const DesembolsosPage = () => {
               style={{ background: '#52c41a', borderColor: '#52c41a' }}
             >
               Simular Pagamento CEDSIF
+            </Button>
+            <Button 
+              danger
+              icon={<DeleteOutlined />} 
+              onClick={handleResetDesembolsos}
+              title="Limpar todos os dados de desembolsos"
+            >
+              Reset Dados
             </Button>
             <Button icon={<ReloadOutlined />} onClick={loadDesembolsos} loading={loading}>
               Atualizar

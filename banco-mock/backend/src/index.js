@@ -13,6 +13,7 @@ const capacidadeRoutes = require('./routes/capacidade');
 const healthRoutes = require('./routes/health');
 const emprestimosRoutes = require('./routes/emprestimos');
 const cedsifRoutes = require('./routes/cedsif');
+const syncStatusRoutes = require('./routes/sync-status');
 const payjaLoansRoutes = require('./routes/payja-loans');
 
 const app = express();
@@ -49,6 +50,7 @@ app.use('/api/health', healthRoutes);
 app.use('/api/emprestimos', emprestimosRoutes);
 app.use('/api/cedsif', cedsifRoutes);
 app.use('/api/payja-loans', payjaLoansRoutes);
+app.use('/api/sync', syncStatusRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {
@@ -65,7 +67,7 @@ db.init();
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log(`\n🏦 ${process.env.BANCO_NOME} - Sistema Mock`);
-  console.log(`📡 Servidor rodando em http://localhost:${PORT}`);
+  console.log(`📡 Servidor rodando em http://155.138.227.26:${PORT}`);
   console.log(`🔑 API Key: ${process.env.API_KEY}`);
   console.log(`\n✅ Pronto para receber requisições!\n`);
 });

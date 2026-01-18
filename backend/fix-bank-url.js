@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 async function main() {
   const result = await prisma.bankPartner.updateMany({
     where: { code: 'GHW' },
-    data: { apiUrl: 'http://localhost:4000' }
+    data: { apiUrl: 'http://155.138.227.26:4000' }
   });
   console.log('✓ Banco GHW atualizado:', result.count, 'registros');
   

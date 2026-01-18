@@ -1,70 +1,34 @@
-# PayJA Demo - Serviços Principais
+# PayJA & Nedbank: Microcrédito Instantâneo via USSD
 
-Monorepo com os serviços usados nas demos PayJA. Serviços críticos:
-- payja-backend (NestJS + Prisma)
-- ussd-simulator (Express + Prisma + frontend embarcado)
-- banco-mock-backend (API simulada)
-- banco-mock-frontend (painel do banco)
-- payja-desktop (painel web/electron)
+Este projeto é uma demonstração completa de uma solução de microcrédito instantâneo integrada com o **Nedbank**, permitindo que clientes solicitem e recebam empréstimos em segundos através do canal **USSD (*898#)**.
 
-## Requisitos
-- Node.js 18+
-- npm
-- PM2 instalado globalmente: `npm install -g pm2`
+## 🚀 Visão Geral
 
-## Instalação Rápida
-Execute na raiz do repo:
+O ecossistema PayJA automatiza todo o ciclo de vida do crédito:
+1. **Solicitação**: Via USSD (*898#) ou App.
+2. **Validação**: Verificação em tempo real com o Banco (Nedbank/Mock).
+3. **Scoring**: Avaliação automática de risco e limite.
+4. **Desembolso**: Execução instantânea via API bancária.
+5. **Notificação**: Confirmação via SMS ao cliente.
 
-```powershell
-# Backend PayJA
-cd backend
-npm install
-npm run prisma:generate
-npm run build
+## 🛠️ Arquitetura do Sistema
 
-# USSD Simulator
-cd ../ussd-simulator-standalone
-npm install
+| Serviço | Descrição | Porta |
+| :--- | :--- | :--- |
+| **PayJA Backend** | Core API (NestJS + Prisma + SQLite) | 3000 |
+| **USSD Simulator** | Simulador de Telemóvel e USSD (Express) | 3001 |
+| **Banco Mock** | API de Simulação Bancária (Nedbank) | 4500 |
+| **PayJA Desktop** | Painel Administrativo (React + Vite) | 5173 |
 
-# Banco Mock (API)
-cd ../banco-mock/backend
-npm install
+## 🌐 Acesso Rápido (Demo)
 
-# Banco Mock (Frontend)
-cd ../frontend
-npm install
+- **Painel Administrativo**: [http://155.138.227.26:5173](http://155.138.227.26:5173)
+  - *Credenciais: admin@payja.co.mz / admin123*
+- **Simulador USSD**: [http://155.138.227.26:3001](http://155.138.227.26:3001)
+- **Banco Mock (Admin)**: [http://155.138.227.26:4100](http://155.138.227.26:4100)
+- **API Documentation**: [http://155.138.227.26:3000/api/v1](http://155.138.227.26:3000/api/v1)
 
-# Desktop (painel)
-cd ../../desktop
-npm install
-```
-
-## Subir tudo com PM2
-Na raiz do repo (após instalar deps e build do backend):
-
-```powershell
-pm2 start pm2.payja-backend.config.js         # porta 3000
-pm2 start pm2.ussd-simulator.config.js        # porta 3001
-pm2 start pm2.banco-mock-backend.config.js    # porta 4500
-pm2 start pm2.frontends.config.js             # banco frontend 4100, desktop 5173
-```
-
-Comandos úteis:
-- `pm2 list` para status
-- `pm2 logs <name>` para logs
-- `pm2 restart <name>` ou `pm2 restart all`
-- `pm2 stop <name>` / `pm2 delete <name>`
-
-## Portas e Endpoints Principais
-- payja-backend: 3000 (NestJS API)
-- ussd-simulator: 3001 (API + páginas public/index.html, customers.html)
-- banco-mock-backend: 4500 (mock bancário)
-- banco-mock-frontend: 4100 (painel mock)
-- payja-desktop: 5173 (versão web da app desktop)
-
-## READMEs por Serviço
-- backend: ./backend/README.md
-- ussd-simulator-standalone: ./ussd-simulator-standalone/README.md
-- banco-mock backend: ./banco-mock/backend/README.md
-- banco-mock frontend: ./banco-mock/frontend/README.md
-- desktop: ./desktop/README.md
+---
+**Desenvolvido por Bucuanadev**
+**Status**: ✅ Online e Funcional
+**Última Atualização**: Janeiro 2026

@@ -7,7 +7,7 @@ async function bootstrap() {
 
   // Enable CORS for desktop app
   app.enableCors({
-    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    origin: ['http://155.138.227.26:5173', 'http://155.138.227.26:3000'],
     credentials: true,
   });
 
@@ -25,8 +25,8 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
-  console.log(`🚀 PayJA Backend rodando em http://localhost:${port}`);
-  console.log(`📡 API disponível em http://localhost:${port}/api/v1`);
+  console.log(`🚀 PayJA Backend rodando em http://155.138.227.26:${port}`);
+  console.log(`📡 API disponível em http://155.138.227.26:${port}/api/v1`);
 }
 
 bootstrap();

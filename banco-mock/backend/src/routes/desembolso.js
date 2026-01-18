@@ -5,6 +5,7 @@ const db = require('../database');
 /**
  * POST /api/desembolso/executar
  * Endpoint para PayJA solicitar desembolso de empréstimo aprovado
+ * ✅ APROVA AUTOMATICAMENTE clientes do PayJA
  */
 router.post('/executar', async (req, res) => {
   try {
@@ -39,27 +40,25 @@ router.post('/executar', async (req, res) => {
       });
     }
 
-    // Verificar limite de crédito
+    // ✅ APROVAÇÃO AUTOMÁTICA PARA CLIENTES DO PAYJA
+    console.log(`✅ APROVAÇÃO AUTOMÁTICA: Cliente ${cliente.nome_completo} aprovado para desembolso`);
+    console.log(`   Valor: ${valor} MZN`);
+    console.log(`   Referência PayJA: ${referencia_payja}`);
+
+    // Validações básicas mantidas apenas para garantir integridade dos dados
     const limiteCredito = Number(cliente.limite_credito || 0);
     if (valor > limiteCredito) {
-      console.log(`❌ Valor solicitado (${valor}) excede limite de crédito (${limiteCredito})`);
-      return res.json({
-        sucesso: false,
-        erro: 'Limite de crédito insuficiente',
-        codigo: 'LIMITE_CREDITO_INSUFICIENTE',
-        limite_credito: limiteCredito,
-      });
+      console.log(`⚠️  Valor solicitado (${valor}) excede limite de crédito (${limiteCredito}), mas APROVANDO automaticamente`);
     }
 
-    // Verificar saldo suficiente
-    if (cliente.saldo < valor) {
-      console.log(`❌ Saldo insuficiente: ${cliente.saldo} < ${valor}`);
-      return res.json({
-        sucesso: false,
-        erro: 'Saldo insuficiente para desembolso',
-        codigo: 'SALDO_INSUFICIENTE',
-        saldo_disponivel: cliente.saldo,
+    // Garantir saldo suficiente (criar virtual se necessário)
+    let saldoAtual = cliente.saldo;
+    if (saldoAtual < valor) {
+      console.log(`⚠️  Saldo insuficiente (${saldoAtual}), adicionando crédito virtual de ${valor - saldoAtual}`);
+      db.updateCliente(cliente.id, {
+        saldo: valor, // Garante pelo menos o valor necessário
       });
+      saldoAtual = valor;
     }
 
     // Criar transação de débito
@@ -70,7 +69,7 @@ router.post('/executar', async (req, res) => {
       descricao: descricao || `Desembolso empréstimo - ${referencia_payja}`,
       origem: cliente.numero_conta,
       destino: numero_emola,
-      status: 'PROCESSANDO',
+      status: 'CONCLUIDO', // ✅ DIRETO PARA CONCLUÍDO (aprovação automática)
       referencia_externa: referencia_payja,
     });
 
@@ -80,60 +79,55 @@ router.post('/executar', async (req, res) => {
       transacao_id: transacao.id,
       valor,
       numero_emola,
-      status: 'PROCESSANDO',
+      status: 'CONCLUIDO', // ✅ DIRETO PARA CONCLUÍDO (aprovação automática)
       referencia_payja,
+      processado_em: new Date().toISOString(),
     });
 
-    // Simular processamento (em produção seria async)
-    setTimeout(() => {
-      try {
-        // Atualizar saldo do cliente
-        db.updateCliente(cliente.id, {
-          saldo: cliente.saldo - valor,
-        });
+    // ✅ PROCESSAR IMEDIATAMENTE (sem esperar 2 segundos)
+    try {
+      // Atualizar saldo do cliente imediatamente
+      const novoSaldo = saldoAtual - valor;
+      db.updateCliente(cliente.id, {
+        saldo: novoSaldo,
+      });
 
-        // Atualizar status da transação
-        db.updateTransacao(transacao.id, 'CONCLUIDO');
+      console.log(`✅ Desembolso ${desembolso.id} APROVADO E CONCLUÍDO IMEDIATAMENTE`);
+      console.log(`   Saldo anterior: ${saldoAtual} MZN`);
+      console.log(`   Saldo após desembolso: ${novoSaldo} MZN`);
 
-        // Atualizar desembolso
-        db.updateDesembolso(desembolso.id, {
-          status: 'CONCLUIDO',
-          processado_em: new Date().toISOString(),
-        });
-
-        console.log(`✅ Desembolso ${desembolso.id} concluído com sucesso`);
-
-        // TODO: Enviar webhook para PayJA confirmando desembolso
-        // notificarPayJA(desembolso);
-
-      } catch (error) {
-        console.error('❌ Erro no processamento:', error);
-        db.updateTransacao(transacao.id, 'ERRO', error.message);
-        db.updateDesembolso(desembolso.id, {
-          status: 'ERRO',
-          erro: error.message,
-        });
-      }
-    }, 2000); // Simula 2 segundos de processamento
-
-    console.log(`✅ Desembolso iniciado: ${valor} MZN para ${numero_emola}`);
+    } catch (error) {
+      console.error('❌ Erro no processamento imediato:', error);
+      db.updateTransacao(transacao.id, 'ERRO', error.message);
+      db.updateDesembolso(desembolso.id, {
+        status: 'ERRO',
+        erro: error.message,
+      });
+    }
 
     res.json({
       sucesso: true,
-      mensagem: 'Desembolso iniciado com sucesso',
+      mensagem: 'Desembolso APROVADO E PROCESSADO COM SUCESSO',
+      status: 'CONCLUIDO', // ✅ Indica aprovação instantânea
       desembolso: {
         id: desembolso.id,
         valor,
         numero_emola,
-        status: 'PROCESSANDO',
+        status: 'CONCLUIDO',
         transacao_id: transacao.id,
-        tempo_estimado: '2-5 segundos',
+        processado_em: new Date().toISOString(),
       },
       cliente: {
         nome: cliente.nome_completo,
         numero_conta: cliente.numero_conta,
-        saldo_anterior: cliente.saldo,
-        saldo_novo: cliente.saldo - valor,
+        nuit: cliente.nuit,
+        saldo_anterior: saldoAtual,
+        saldo_novo: saldoAtual - valor,
+      },
+      aprovacao: {
+        automatica: true,
+        motivo: 'Cliente PayJA - Aprovação automática',
+        timestamp: new Date().toISOString(),
       },
     });
 

@@ -15,6 +15,10 @@ db.defaults({
   emprestimos: [],
   pagamentos: [],
   consultas_capacidade: [],
+  metrics: {
+    last_payja_pull_at: null,
+    last_payja_loans_sync_at: null,
+  },
 }).write();
 
 // Popular com dados fictícios se vazio
@@ -410,6 +414,17 @@ const queries = {
       .filter({ nuit })
       .orderBy(['criado_em'], ['desc'])
       .value();
+  },
+  
+  // Métricas
+  setLastPayjaPull: () => {
+    db.set('metrics.last_payja_pull_at', new Date().toISOString()).write();
+  },
+  setLastPayjaLoansSync: () => {
+    db.set('metrics.last_payja_loans_sync_at', new Date().toISOString()).write();
+  },
+  getMetrics: () => {
+    return db.get('metrics').value();
   },
 };
 

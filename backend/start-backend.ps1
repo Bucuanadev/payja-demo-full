@@ -18,9 +18,9 @@ pm2 start "$PSScriptRoot\..\pm2.payja-backend.config.js" --only payja-backend --
 Start-Sleep -Seconds 3
 
 try {
-  $status = (Invoke-WebRequest -Uri "http://localhost:3000/api/v1/health" -UseBasicParsing -TimeoutSec 5).StatusCode
+  $status = (Invoke-WebRequest -Uri "http://155.138.227.26:3000/api/v1/health" -UseBasicParsing -TimeoutSec 5).StatusCode
   if ($status -eq 200) {
-    Write-Host "✓ Backend online em http://localhost:3000" -ForegroundColor Green
+    Write-Host "✓ Backend online em http://155.138.227.26:3000" -ForegroundColor Green
   } else {
     Write-Host "⚠ Backend respondeu com status $status" -ForegroundColor Yellow
   }

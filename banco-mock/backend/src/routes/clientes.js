@@ -1,10 +1,27 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
+const axios = require('axios');
+
+// Função auxiliar para disparar webhook de sincronização
+async function notifyPayja(event, data) {
+  const payjaUrl = process.env.PAYJA_API_URL || 'http://localhost:3000/api/v1';
+  try {
+    await axios.post(`${payjaUrl}/webhooks/bank-sync`, {
+      event,
+      data,
+      timestamp: new Date().toISOString()
+    });
+    console.log(`[Sync] Notificação enviada ao PayJA: ${event}`);
+  } catch (error) {
+    console.error(`[Sync] Erro ao notificar PayJA (${event}):`, error.message);
+  }
+}
 
 // GET - Listar todos os clientes
 router.get('/', (req, res) => {
   try {
+    try { db.setLastPayjaPull(); } catch (_e) {}
     const clientes = db.getAllClientes();
     res.json({
       sucesso: true,
@@ -23,14 +40,12 @@ router.get('/', (req, res) => {
 router.get('/nuit/:nuit', (req, res) => {
   try {
     const cliente = db.getClienteByNuit(req.params.nuit);
-    
     if (!cliente) {
       return res.status(404).json({
         sucesso: false,
         erro: 'Cliente não encontrado',
       });
     }
-
     res.json({
       sucesso: true,
       cliente,
@@ -47,17 +62,13 @@ router.get('/nuit/:nuit', (req, res) => {
 router.get('/:id', (req, res) => {
   try {
     const cliente = db.getClienteById(req.params.id);
-    
     if (!cliente) {
       return res.status(404).json({
         sucesso: false,
         erro: 'Cliente não encontrado',
       });
     }
-
-    // Buscar transações
     const transacoes = db.getTransacoesByCliente(req.params.id);
-
     res.json({
       sucesso: true,
       cliente,
@@ -72,10 +83,11 @@ router.get('/:id', (req, res) => {
 });
 
 // POST - Criar novo cliente
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const cliente = db.createCliente(req.body);
-    
+    // Notificar PayJA em tempo real
+    await notifyPayja('customer.created', cliente);
     res.status(201).json({
       sucesso: true,
       mensagem: 'Cliente criado com sucesso',
@@ -90,14 +102,38 @@ router.post('/', (req, res) => {
 });
 
 // PATCH - Atualizar cliente
-router.patch('/:id', (req, res) => {
+router.patch('/:id', async (req, res) => {
   try {
     const cliente = db.updateCliente(req.params.id, req.body);
-    
+    // Notificar PayJA em tempo real
+    await notifyPayja('customer.updated', cliente);
     res.json({
       sucesso: true,
       mensagem: 'Cliente atualizado com sucesso',
       cliente,
+    });
+  } catch (error) {
+    res.status(400).json({
+      sucesso: false,
+      erro: error.message,
+    });
+  }
+});
+
+// DELETE - Remover cliente
+router.delete('/:id', async (req, res) => {
+  try {
+    const cliente = db.getClienteById(req.params.id);
+    if (!cliente) {
+      return res.status(404).json({ sucesso: false, erro: 'Cliente não encontrado' });
+    }
+    const nuit = cliente.nuit;
+    db.db.get('clientes').remove({ id: req.params.id }).write();
+    // Notificar PayJA em tempo real
+    await notifyPayja('customer.deleted', { nuit });
+    res.json({
+      sucesso: true,
+      mensagem: 'Cliente removido com sucesso',
     });
   } catch (error) {
     res.status(400).json({

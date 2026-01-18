@@ -10,7 +10,7 @@ Write-Host ""
 $DbUser = "payja"
 $DbName = "payja_ussd"
 $DbPassword = if ($env:PAYJA_DB_PASSWORD) { $env:PAYJA_DB_PASSWORD } else { "payja_secure_password_123" }
-$DbHost = "localhost"
+$DbHost = "155.138.227.26"
 $DbPort = "5432"
 
 Write-Host "📋 Configuração:" -ForegroundColor Cyan
@@ -73,7 +73,7 @@ if (-not (Test-Path $envPath)) {
 DATABASE_URL="postgresql://$DbUser`:$DbPassword@$DbHost`:$DbPort/$DbName"
 
 # USSD API
-USSD_API_URL="http://localhost:3001"
+USSD_API_URL="http://155.138.227.26:3001"
 USSD_SESSION_TIMEOUT=600
 
 # JWT

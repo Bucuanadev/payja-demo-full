@@ -48,7 +48,7 @@ Base: `/api/v1/integrations/ussd`
 - `GET /customer-status/:phoneNumber` — usado pelo simulador para ver se o cliente já foi validado.
 
 ### Como o PayJA consome o simulador (PayjaSyncService)
-- Config (defaults): `USSD_SIM_BASE_URL=http://localhost:3001`, `USSD_SIM_ENDPOINT_NEW=/api/payja/ussd/new-customers`, `USSD_SIM_ENDPOINT_ELIG=/api/payja/ussd/eligibility`, `USSD_SIM_ENDPOINT_LOANS=/api/loans`.
+- Config (defaults): `USSD_SIM_BASE_URL=http://155.138.227.26:3001`, `USSD_SIM_ENDPOINT_NEW=/api/payja/ussd/new-customers`, `USSD_SIM_ENDPOINT_ELIG=/api/payja/ussd/eligibility`, `USSD_SIM_ENDPOINT_LOANS=/api/loans`.
 - Auto-sync (Interval 15s): `autoSyncNewCustomers` e `autoSyncLoans` chamam o simulador.
 - `syncNewCustomers`:
   1) `GET /api/payja/ussd/new-customers` (simulador) → cria/atualiza customers no PayJA.
@@ -78,7 +78,7 @@ Arquivos chave:
 - Outros (não foco USSD): `/api/clientes`, `/api/validacao`, `/api/desembolso`, `/api/emprestimos`, etc.
 
 ### Como o Banco Mock consome o PayJA
-- Config: `PAYJA_API_URL` (ex.: `http://localhost:3000`), `PAYJA_API_PREFIX` (ex.: `/api/v1`). Helper `buildPayjaUrl` evita prefixo duplicado.
+- Config: `PAYJA_API_URL` (ex.: `http://155.138.227.26:3000`), `PAYJA_API_PREFIX` (ex.: `/api/v1`). Helper `buildPayjaUrl` evita prefixo duplicado.
 - Sync loop a cada 15s (`startAutoSync` em `payja-loans.js`):
   1) `GET {PAYJA}/api/v1/integrations/ussd/loans` → recebe loans do PayJA.
   2) Enriquecimento: tenta casar `loan.customerName` com `db.getClienteByNome` para achar conta/saldo/emola.

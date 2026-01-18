@@ -14,6 +14,7 @@ const DashboardPage = () => {
   const [stats, setStats] = useState(null);
   const [recentValidacoes, setRecentValidacoes] = useState([]);
   const [recentDesembolsos, setRecentDesembolsos] = useState([]);
+  const [syncStatus, setSyncStatus] = useState({ last_pull: null, last_loans: null });
 
   useEffect(() => {
     loadData();
@@ -22,10 +23,11 @@ const DashboardPage = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [clientesRes, validacoesRes, desembolsosRes] = await Promise.all([
+      const [clientesRes, validacoesRes, desembolsosRes, syncRes] = await Promise.all([
         api.get('/clientes'),
         api.get('/validacao/historico'),
         api.get('/desembolso/historico'),
+        api.get('/sync/status'),
       ]);
 
       const clientes = clientesRes.data.clientes || [];
@@ -49,6 +51,12 @@ const DashboardPage = () => {
 
       setRecentValidacoes(validacoes.slice(0, 5));
       setRecentDesembolsos(desembolsos.slice(0, 5));
+
+      const syncData = syncRes.data?.data || {};
+      setSyncStatus({
+        last_pull: syncData.last_payja_pull_at,
+        last_loans: syncData.last_payja_loans_sync_at,
+      });
 
     } catch (error) {
       message.error('Erro ao carregar dados');
@@ -132,6 +140,25 @@ const DashboardPage = () => {
   return (
     <div>
       <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12} md={8}>
+          <Card>
+            <Statistic
+              title="Último Pull do PayJA (Clientes)"
+              value={syncStatus.last_pull ? new Date(syncStatus.last_pull).toLocaleString('pt-MZ') : '—'}
+              prefix={<ClockCircleOutlined />}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} md={8}>
+          <Card>
+            <Statistic
+              title="Última Sincronização de Empréstimos"
+              value={syncStatus.last_loans ? new Date(syncStatus.last_loans).toLocaleString('pt-MZ') : '—'}
+              prefix={<ClockCircleOutlined />}
+            />
+          </Card>
+        </Col>
         <Col xs={24} sm={12} md={8}>
           <Card>
             <Statistic

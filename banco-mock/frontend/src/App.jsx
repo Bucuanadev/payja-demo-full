@@ -119,7 +119,7 @@ function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <Badge status="success" text="Sistema Online" />
             <span style={{ color: '#8c8c8c', fontSize: 12 }}>
-              API: localhost:4500
+              API: 155.138.227.26:4500
             </span>
           </div>
         </Header>

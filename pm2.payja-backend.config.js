@@ -5,8 +5,8 @@ module.exports = {
     {
       name: 'payja-backend',
       cwd: path.join(__dirname, 'backend'),
-      script: 'node',
-      args: 'dist/src/main.js',
+      script: 'dist/src/main.js',
+      args: '',
       interpreter: process.platform === 'win32' ? undefined : 'node',
       env: {
         NODE_ENV: 'development',

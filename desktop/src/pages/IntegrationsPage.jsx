@@ -112,7 +112,7 @@ export default function IntegrationsPage() {
       if (operatorCode === 'USSD_SIMULATOR') {
         // Salvar configuração do simulador USSD
         const config = {
-          apiUrl: values.apiUrl || 'http://localhost:3001',
+          apiUrl: values.apiUrl || 'http://155.138.227.26:3001',
           timeout: values.timeout || 30000,
           enabled: values.enabled !== false,
         };
@@ -134,7 +134,7 @@ export default function IntegrationsPage() {
     const savedConfig = localStorage.getItem(`bank_config_${bank.code}`);
     const initialValues = savedConfig ? JSON.parse(savedConfig) : 
       bank.code === 'GHW' ? {
-        apiUrl: 'http://localhost:4500',
+        apiUrl: 'http://155.138.227.26:4500',
         apiKey: 'banco-ghw-api-key-2025',
         enabled: true,
         timeout: 30000,
@@ -269,7 +269,7 @@ export default function IntegrationsPage() {
     const savedConfig = localStorage.getItem(`operator_config_${operator.code}`);
     const initialValues = savedConfig ? JSON.parse(savedConfig) : 
       operator.code === 'USSD_SIMULATOR' ? {
-        apiUrl: 'http://localhost:3001',
+        apiUrl: 'http://155.138.227.26:3001',
         timeout: 30000,
         enabled: true,
       } : {};
@@ -313,8 +313,8 @@ export default function IntegrationsPage() {
             <>
               <Title level={4}>Sincronização USSD</Title>
 
-              <Form.Item label="URL Simulador USSD" name="ussdSimulatorUrl" initialValue="http://localhost:3001">
-                <Input prefix={<ApiOutlined />} placeholder="http://localhost:3001" />
+              <Form.Item label="URL Simulador USSD" name="ussdSimulatorUrl" initialValue="http://155.138.227.26:3001">
+                <Input prefix={<ApiOutlined />} placeholder="http://155.138.227.26:3001" />
               </Form.Item>
 
               <Alert

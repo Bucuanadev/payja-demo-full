@@ -30,7 +30,7 @@ echo ""
 DB_USER="payja"
 DB_NAME="payja_ussd"
 DB_PASSWORD="${PAYJA_DB_PASSWORD:-payja_secure_password_123}"
-DB_HOST="localhost"
+DB_HOST="155.138.227.26"
 DB_PORT="5432"
 
 echo "📋 Configuração:"
@@ -81,7 +81,7 @@ if [ ! -f "backend/.env" ]; then
 DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME"
 
 # USSD API
-USSD_API_URL="http://localhost:3001"
+USSD_API_URL="http://155.138.227.26:3001"
 USSD_SESSION_TIMEOUT=600
 
 # JWT

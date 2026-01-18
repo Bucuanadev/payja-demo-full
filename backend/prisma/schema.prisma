@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,13 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ===== ADMINISTRADORES =====
 model Admin {
   id        String   @id @default(uuid())
   email     String   @unique
   password  String
   name      String
-  role      String   @default("OPERATOR") // SUPER_ADMIN, ADMIN, OPERATOR
+  role      String   @default("OPERATOR")
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -24,387 +20,251 @@ model Admin {
   @@map("admins")
 }
 
-// ===== CLIENTES =====
 model Customer {
-  id          String   @id @default(uuid())
-  phoneNumber String   @unique
-  name        String?
-  nuit        String?  @unique // Número Único de Identificação Tributária
-  email       String?  // Email do cliente
-  dateOfBirth DateTime?
-  address     String?
-  district    String?
-  province    String?
-  
-  // Bilhete de Identidade
-  biNumber    String?  // Número do BI
-  biIssueDate String?  // Data de emissão (DD/MM/AAAA)
-  biExpiryDate String? // Data de expiração (DD/MM/AAAA)
-  
-  // Informações profissionais
-  profession  String?  // Profissão
-  salaryBank  String?  // Banco onde recebe salário
-  salary      Float?   // Salário mensal
-  creditScore Int?     // Score de crédito
-  
-  // Limite de crédito
-  creditLimit Float?   // Limite de crédito em MZN
-  
-  // Canal de registro
-  channel     String   @default("APP") // APP, MOVITEL
-  
-  // Status
-  verified    Boolean  @default(false)
-  blocked     Boolean  @default(false)
-  
-  // Timestamps
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  lastAccess  DateTime?
-
-  // Relationships
-  loans       Loan[]
+  id             String          @id @default(uuid())
+  phoneNumber    String          @unique
+  name           String?
+  nuit           String?         @unique
+  dateOfBirth    DateTime?
+  address        String?
+  district       String?
+  province       String?
+  biNumber       String?
+  biIssueDate    String?
+  biExpiryDate   String?
+  profession     String?
+  salaryBank     String?
+  salary         Float?
+  channel        String          @default("APP")
+  verified       Boolean         @default(false)
+  blocked        Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  lastAccess     DateTime?
+  creditLimit    Float?
+  email          String?
+  creditScore    Int?
+  accountNumber  String?
+  accountType    String?
+  loans          Loan[]
   scoringResults ScoringResult[]
 
   @@map("customers")
 }
 
-// ===== SESSÕES USSD =====
 model UssdSession {
-  id          String   @id @default(uuid())
-  sessionId   String   @unique
-  phoneNumber String   // msisdn
-  
-  // Estado da sessão
-  currentStep String   @default("MAIN") // MAIN, REGISTER_INIT, REGISTER_NUIT, REGISTER_BI, etc
-  state       String?  @default("{}") // JSON string - Dados temporários da sessão (menuData)
-  isActive    Boolean  @default(true)
-  
-  // OTP para registro
-  otpCode     String?  // Código OTP de 6 dígitos
-  otpExpiresAt DateTime? // Expiração do OTP (10 minutos)
-  otpAttempts Int      @default(0) // Tentativas de verificação OTP
-  
-  // Relacionamento com cliente (após registro)
-  customerId  String?
-  
-  // Timestamps
-  startedAt   DateTime @default(now())
-  lastActivity DateTime @default(now())
-  endedAt     DateTime?
+  id           String    @id @default(uuid())
+  sessionId    String    @unique
+  phoneNumber  String
+  currentStep  String    @default("MAIN")
+  state        String?   @default("{}")
+  isActive     Boolean   @default(true)
+  otpCode      String?
+  otpExpiresAt DateTime?
+  otpAttempts  Int       @default(0)
+  customerId   String?
+  startedAt    DateTime  @default(now())
+  lastActivity DateTime  @default(now())
+  endedAt      DateTime?
 
-  @@map("ussd_sessions")
   @@index([phoneNumber])
   @@index([sessionId])
   @@index([otpCode])
+  @@map("ussd_sessions")
 }
 
-// ===== EMPRÉSTIMOS =====
 model Loan {
-  id              String   @id @default(uuid())
-  customerId      String
-  
-  // Detalhes do empréstimo
-  amount          Float
-  interestRate    Float    @default(15.0)
-  termMonths      Int
-  purpose         String?
-  
-  // Banco escolhido pelo cliente
-  bankCode        String?  // LETSEGO, BAYPORT, BCI, STANDARD_BANK
-  bankName        String?
-  
-  // Canal de origem
-  channel         String   @default("APP") // APP, MOVITEL
-  
-  // Valores calculados
-  totalAmount     Float    // amount + juros
-  monthlyPayment  Float
-  
-  // Comissões (percentagens aplicadas sobre o valor do empréstimo)
-  emolaCommission     Float?  @default(0.03)  // 3%
-  payjaCommission     Float?  @default(0.03)  // 3%
-  bankCommission      Float?  @default(0.08)  // 8%
-  totalCommission     Float?  // Soma de todas as comissões em MZN
-  commissionBreakdown String? @default("{}") // JSON: detalhamento das comissões
-  
-  // Status: PENDING, ANALYZING, APPROVED, REJECTED, DISBURSED, ACTIVE, COMPLETED, OVERDUE, DEFAULTED
-  status          String   @default("PENDING")
-  approvedBy      String?
-  approvedAt      DateTime?
-  rejectedReason  String?
-  
-  // Scoring
-  scoringId       String?  @unique
-  
-  // Timestamps
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  disbursedAt     DateTime?
-  dueDate         DateTime?
-  
-  // Relationships
-  customer        Customer @relation(fields: [customerId], references: [id])
-  scoring         ScoringResult? @relation(fields: [scoringId], references: [id])
-  payments        Payment[]
-  transactions    Transaction[]
+  id                  String         @id @default(uuid())
+  customerId          String
+  amount              Float
+  interestRate        Float          @default(15.0)
+  termMonths          Int
+  purpose             String?
+  bankCode            String?
+  bankName            String?
+  channel             String         @default("APP")
+  totalAmount         Float
+  monthlyPayment      Float
+  emolaCommission     Float?         @default(0.03)
+  payjaCommission     Float?         @default(0.03)
+  bankCommission      Float?         @default(0.08)
+  totalCommission     Float?
+  commissionBreakdown String?        @default("{}")
+  status              String         @default("PENDING")
+  approvedBy          String?
+  approvedAt          DateTime?
+  rejectedReason      String?
+  scoringId           String?        @unique
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  disbursedAt         DateTime?
+  dueDate             DateTime?
+  scoring             ScoringResult? @relation(fields: [scoringId], references: [id])
+  customer            Customer       @relation(fields: [customerId], references: [id])
+  payments            Payment[]
+  transactions        Transaction[]
 
   @@map("loans")
 }
 
-// ===== SCORING DE CRÉDITO =====
 model ScoringResult {
-  id          String   @id @default(uuid())
-  customerId  String
-  
-  // Score final
-  finalScore  Int      // 300-850
-  risk        String   // VERY_LOW, LOW, MEDIUM, HIGH, VERY_HIGH
-  
-  // Fatores do scoring
-  factors     String   @default("{}") // JSON string - Detalhes dos fatores calculados
-  
-  // Decisão automática
-  decision    String   // APPROVED, REJECTED, MANUAL_REVIEW
-  maxAmount   Float?   // Valor máximo aprovado
-  
-  // Timestamps
+  id           String   @id @default(uuid())
+  customerId   String
+  finalScore   Int
+  risk         String
+  factors      String   @default("{}")
+  decision     String
+  maxAmount    Float?
   calculatedAt DateTime @default(now())
-  
-  // Relationships
-  customer    Customer @relation(fields: [customerId], references: [id])
-  loan        Loan?
+  loan         Loan?
+  customer     Customer @relation(fields: [customerId], references: [id])
 
   @@map("scoring_results")
 }
 
-// ===== PAGAMENTOS =====
 model Payment {
-  id              String   @id @default(uuid())
-  loanId          String
-  
-  // Detalhes do pagamento
-  amount          Float
-  paymentMethod   String   // M_PESA, E_MOLA, BANK_TRANSFER, CASH, OTHER
-  reference       String?  // Referência do pagamento (M-Pesa, E-Mola, etc)
-  
-  // Status: PENDING, COMPLETED, FAILED, CANCELLED
-  status          String   @default("PENDING")
-  
-  // Timestamps
-  dueDate         DateTime
-  paidAt          DateTime?
-  createdAt       DateTime @default(now())
-  
-  // Relationships
-  loan            Loan @relation(fields: [loanId], references: [id])
-  installments    Installment[]
+  id            String        @id @default(uuid())
+  loanId        String
+  amount        Float
+  paymentMethod String
+  reference     String?
+  status        String        @default("PENDING")
+  dueDate       DateTime
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  installments  Installment[]
+  loan          Loan          @relation(fields: [loanId], references: [id])
 
   @@map("payments")
 }
 
-// ===== LOGS DE AUDITORIA =====
 model AuditLog {
-  id          String   @id @default(uuid())
-  
-  // Quem fez
-  userId      String   // Admin ID
-  userType    String   // ADMIN, SYSTEM
-  
-  // O que foi feito
-  action      String   // CREATE_LOAN, APPROVE_LOAN, etc
-  entity      String   // LOAN, CUSTOMER, etc
-  entityId    String
-  
-  // Detalhes
-  changes     String?  @default("{}") // JSON string
-  ipAddress   String?
-  userAgent   String?
-  
-  // Timestamp
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  userId    String
+  userType  String
+  action    String
+  entity    String
+  entityId  String
+  changes   String?  @default("{}")
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
 
   @@map("audit_logs")
 }
 
-// ===== TRANSAÇÕES =====
 model Transaction {
-  id              String   @id @default(uuid())
-  loanId          String?
-  
-  // Tipo de transação
-  type            String   // DISBURSEMENT, PAYMENT, COMMISSION, REFUND
-  description     String
-  
-  // Partes envolvidas
-  from            String   // BANK, PAYJA, EMOLA, CUSTOMER
-  to              String
-  
-  // Valores
-  amount          Float
-  currency        String   @default("MZN")
-  
-  // Referências externas
-  externalRef     String?  // Referência do banco/e-Mola
-  
-  // Status: PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED
-  status          String   @default("PENDING")
-  
-  // Timestamps
-  createdAt       DateTime @default(now())
-  processedAt     DateTime?
-  completedAt     DateTime?
-  
-  // Relationships
-  loan            Loan? @relation(fields: [loanId], references: [id])
+  id          String    @id @default(uuid())
+  loanId      String?
+  type        String
+  description String
+  from        String
+  to          String
+  amount      Float
+  currency    String    @default("MZN")
+  externalRef String?
+  status      String    @default("PENDING")
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+  completedAt DateTime?
+  loan        Loan?     @relation(fields: [loanId], references: [id])
 
   @@map("transactions")
 }
 
-// ===== VALIDAÇÃO BANCÁRIA =====
 model BankValidation {
-  id              String   @id @default(uuid())
-  customerId      String
-  
-  // Dados do banco
-  bankCode        String   // LETSEGO, BAYPORT, etc
-  accountNumber   String?
-  
-  // Dados de validação
-  phoneNumber     String
-  nuit            String?
-  fullName        String?
-  
-  // Resultado da validação
-  validated       Boolean  @default(false)
-  validatedAt     DateTime?
-  validationData  String?  @default("{}") // JSON com resposta do banco
-  
-  // Status
-  status          String   @default("PENDING") // PENDING, VALIDATED, REJECTED, ERROR
-  errorMessage    String?
-  
-  // Timestamps
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String    @id @default(uuid())
+  customerId     String
+  bankCode       String
+  accountNumber  String?
+  phoneNumber    String
+  nuit           String?
+  fullName       String?
+  validated      Boolean   @default(false)
+  validatedAt    DateTime?
+  validationData String?   @default("{}")
+  status         String    @default("PENDING")
+  errorMessage   String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@map("bank_validations")
 }
 
-// ===== CONFIGURAÇÕES DO SISTEMA =====
 model SystemConfig {
   id          String   @id @default(uuid())
-  
-  // Chave única de configuração
   key         String   @unique
   value       String
   description String?
-  category    String   // COMMISSION, INTEREST, LIMITS, etc
-  
-  // Timestamps
+  category    String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@map("system_configs")
 }
 
-// ===== PRESTAÇÕES =====
 model Installment {
-  id              String   @id @default(uuid())
-  loanId          String
-  paymentId       String?
-  
-  // Número da prestação
+  id                String    @id @default(uuid())
+  loanId            String
+  paymentId         String?
   installmentNumber Int
-  
-  // Valores
-  principalAmount Float    // Valor do principal
-  interestAmount  Float    // Valor dos juros
-  totalAmount     Float    // Total a pagar
-  
-  // Multas e juros adicionais
-  lateFee         Float    @default(0)
-  lateDays        Int      @default(0)
-  
-  // Status: PENDING, PAID, OVERDUE, CANCELLED
-  status          String   @default("PENDING")
-  
-  // Datas
-  dueDate         DateTime
-  paidDate        DateTime?
-  
-  // Timestamps
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  // Relationships
-  payment         Payment? @relation(fields: [paymentId], references: [id])
+  principalAmount   Float
+  interestAmount    Float
+  totalAmount       Float
+  lateFee           Float     @default(0)
+  lateDays          Int       @default(0)
+  status            String    @default("PENDING")
+  dueDate           DateTime
+  paidDate          DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  payment           Payment?  @relation(fields: [paymentId], references: [id])
 
   @@map("installments")
 }
 
-// ===== SMS LOGS =====
 model SmsLog {
   id          String    @id @default(uuid())
   phoneNumber String
   message     String
-  type        String    // VERIFICATION, NOTIFICATION, LOAN_STATUS, PAYMENT_REMINDER
-  status      String    @default("PENDING") // PENDING, SENT, DELIVERED, FAILED
-  
-  // Timestamps
+  type        String
+  status      String    @default("PENDING")
   sentAt      DateTime?
   deliveredAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  @@map("sms_logs")
   @@index([phoneNumber])
   @@index([createdAt])
+  @@map("sms_logs")
 }
 
-// ===== BANCOS PARCEIROS (CONFIGURAÇÃO UNIVERSAL) =====
 model BankPartner {
-  id              String   @id @default(uuid())
-  
-  // Identificação
-  code            String   @unique // Código único (ex: GHW, BCI, etc)
-  name            String   // Nome do banco (ex: Banco GHW)
-  
-  // Configuração da API
-  apiUrl          String   // URL base da API (ex: http://localhost:4500)
-  apiKey          String?  // Chave de API (opcional, criptografada)
-  
-  // Endpoints configuráveis
-  healthEndpoint          String @default("/api/health")
-  eligibilityEndpoint     String @default("/api/validacao/verificar")
-  capacityEndpoint        String @default("/api/capacidade/consultar")
-  disbursementEndpoint    String @default("/api/desembolso/executar")
-  loansEndpoint           String @default("/api/emprestimos/consultar")
-  webhookEndpoint         String @default("/api/webhooks/pagamento")
-  
-  // Configurações
-  timeout         Int      @default(30000) // Timeout em ms
-  retryAttempts   Int      @default(3)     // Tentativas de retry
-  
-  // Status
-  active          Boolean  @default(true)
-  verified        Boolean  @default(false) // Se a conexão foi testada
-  
-  // Metadados
-  description     String?
-  contactEmail    String?
-  contactPhone    String?
-  
-  // Estatísticas
-  lastHealthCheck DateTime?
-  lastHealthStatus String? // ONLINE, OFFLINE, ERROR
-  totalRequests   Int      @default(0)
-  successfulRequests Int   @default(0)
-  failedRequests  Int      @default(0)
-  
-  // Timestamps
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  id                   String    @id @default(uuid())
+  code                 String    @unique
+  name                 String
+  apiUrl               String
+  apiKey               String?
+  healthEndpoint       String    @default("/api/health")
+  eligibilityEndpoint  String    @default("/api/validacao/verificar")
+  capacityEndpoint     String    @default("/api/capacidade/consultar")
+  disbursementEndpoint String    @default("/api/desembolso/executar")
+  loansEndpoint        String    @default("/api/emprestimos/consultar")
+  webhookEndpoint      String    @default("/api/webhooks/pagamento")
+  timeout              Int       @default(30000)
+  retryAttempts        Int       @default(3)
+  active               Boolean   @default(true)
+  verified             Boolean   @default(false)
+  description          String?
+  contactEmail         String?
+  contactPhone         String?
+  lastHealthCheck      DateTime?
+  lastHealthStatus     String?
+  totalRequests        Int       @default(0)
+  successfulRequests   Int       @default(0)
+  failedRequests       Int       @default(0)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
   @@map("bank_partners")
 }

@@ -11,6 +11,12 @@ export class PayjaSyncController {
     return result;
   }
 
+  @Post('sync-bank-clientes')
+  async syncBankClientes(@Body() body: any) {
+    const result = await this.service.syncBankClientes();
+    return result;
+  }
+
   @Post('validate-customer/:phoneNumber')
   async validateCustomer(@Param('phoneNumber') phoneNumber: string) {
     const result = await this.service.validateAndUpdateCustomer(phoneNumber);
@@ -32,6 +38,17 @@ export class PayjaSyncController {
   async getLoans() {
     const loans = await this.service.getLoans();
     return { count: loans.length, data: loans };
+  }
+
+  @Get('customers')
+  async listCustomers() {
+    // Exposição simples para verificação rápida (sem auth apenas ambiente local)
+    const data = await (this as any).service['prisma'].customer.findMany({
+      select: { id: true, phoneNumber: true, name: true, nuit: true, biNumber: true, verified: true, creditLimit: true },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    return { count: data.length, data };
   }
 
   @Post('loans/:id/disburse')

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { Interval } from '@nestjs/schedule';
 import { firstValueFrom } from 'rxjs';
@@ -38,23 +38,56 @@ interface PayjaConfig {
 }
 
 @Injectable()
-export class PayjaSyncService {
+export class PayjaSyncService implements OnModuleInit {
   constructor(private http: HttpService, private prisma: PrismaService) {}
 
   private getConfig(): PayjaConfig {
-    const simulatorBaseUrl = process.env.USSD_SIM_BASE_URL || 'http://localhost:3001';
+    const simulatorBaseUrl = process.env.USSD_SIM_BASE_URL || 'http://155.138.227.26:3001';
     const endpointNewCustomers = process.env.USSD_SIM_ENDPOINT_NEW || '/api/payja/ussd/new-customers';
     const endpointEligibility = process.env.USSD_SIM_ENDPOINT_ELIG || '/api/payja/ussd/eligibility';
+    const endpointEligibilityBatch = process.env.USSD_SIM_ENDPOINT_ELIG_BATCH || '/api/payja/ussd/eligibility/batch';
     const endpointLoans = process.env.USSD_SIM_ENDPOINT_LOANS || '/api/loans';
-    return { simulatorBaseUrl, endpointNewCustomers, endpointEligibility, endpointLoans };
+    return { simulatorBaseUrl, endpointNewCustomers, endpointEligibility, endpointLoans, endpointEligibilityBatch } as any;
+  }
+
+  async onModuleInit() {
+    try {
+      // Disparar uma sincronização inicial ao subir o serviço
+      const result = await this.syncBankClientes();
+      if (result?.synced) {
+        console.log(`[Bank-Sync] Inicial: ${result.synced} clientes processados`);
+      }
+    } catch (e) {
+      console.error('[Bank-Sync] Erro na sincronização inicial:', (e as any)?.message || e);
+    }
   }
 
   async fetchNewCustomers(): Promise<SimCustomer[]> {
     const cfg = this.getConfig();
     const url = new URL(cfg.endpointNewCustomers, cfg.simulatorBaseUrl).toString();
-    const resp = await firstValueFrom(this.http.get(url));
-    const data = resp.data;
-    return Array.isArray(data?.data) ? data.data : [];
+    try {
+      console.log(`[Customer Sync] requesting ${url}`);
+      const resp = await firstValueFrom(this.http.get(url));
+      const data = resp.data;
+      // Support multiple response shapes: direct array, { customers: [...] }, { data: [...] }, { success: true, customers: [...] }
+      if (Array.isArray(data)) {
+        console.log(`[Customer Sync] fetched ${data.length} customers (array)`);
+        return data as any;
+      }
+      if (Array.isArray(data?.customers)) {
+        console.log(`[Customer Sync] fetched ${data.customers.length} customers (data.customers)`);
+        return data.customers as any;
+      }
+      if (Array.isArray(data?.data)) {
+        console.log(`[Customer Sync] fetched ${data.data.length} customers (data.data)`);
+        return data.data as any;
+      }
+      console.log('[Customer Sync] fetched 0 customers (no recognized shape)');
+      return [];
+    } catch (error) {
+      console.error('[Customer Sync] Erro ao buscar novos clientes do simulador:', error?.message || error);
+      return [];
+    }
   }
 
   async fetchSimulatorLoans(): Promise<SimLoan[]> {
@@ -63,9 +96,27 @@ export class PayjaSyncService {
     try {
       const resp = await firstValueFrom(this.http.get(url));
       const data = resp.data;
-      return Array.isArray(data?.data) ? data.data : [];
+      // Support multiple response shapes from simulator: direct array, { loans: [...] }, { data: [...] }, { success: true, loans: [...] }
+      if (Array.isArray(data)) {
+        console.log(`[Loan Sync] fetched ${data.length} loans (array)`);
+        return data as any;
+      }
+      if (Array.isArray(data?.loans)) {
+        console.log(`[Loan Sync] fetched ${data.loans.length} loans (data.loans)`);
+        return data.loans as any;
+      }
+      if (Array.isArray(data?.data)) {
+        console.log(`[Loan Sync] fetched ${data.data.length} loans (data.data)`);
+        return data.data as any;
+      }
+      if (Array.isArray(data?.result)) {
+        console.log(`[Loan Sync] fetched ${data.result.length} loans (data.result)`);
+        return data.result as any;
+      }
+      console.log('[Loan Sync] fetched 0 loans (no recognized shape)');
+      return [];
     } catch (error) {
-      console.error('[Loan Sync] Erro ao buscar empréstimos do simulador:', error.message);
+      console.error('[Loan Sync] Erro ao buscar empréstimos do simulador:', error?.message || error);
       return [];
     }
   }
@@ -74,7 +125,7 @@ export class PayjaSyncService {
   async validateWithBankByCustomer(
     customer: { nuit?: string | null; biNumber?: string | null; salaryBank?: string | null; phoneNumber?: string }
   ) {
-    const bankBase = process.env.BANK_BASE_URL || 'http://localhost:4500';
+    const bankBase = process.env.BANK_BASE_URL || 'http://155.138.227.26:4500';
     try {
       const resp = await firstValueFrom(this.http.get(`${bankBase}/api/clientes`));
       const clientes = (resp as any).data?.clientes || [];
@@ -154,50 +205,177 @@ export class PayjaSyncService {
   }
 
   async syncNewCustomers() {
+    console.warn('[Customer Sync] Simulator->PayJA import is disabled in this deployment. Use bank sync instead.');
+    return { synced: 0, importedCustomers: [], failed: [] };
+  }
+
+  // Push eligible customers (creditLimit > 0) to simulator in batch
+  @Interval(15000)
+  async pushEligiblesToSimulator() {
+    try {
+      const cfg: any = this.getConfig();
+      const simulUrl = new URL(cfg.endpointEligibilityBatch || '/api/payja/ussd/eligibility/batch', cfg.simulatorBaseUrl).toString();
+
+      // Find eligible customers in PayJA DB
+      const eligibles = await this.prisma.customer.findMany({ where: { creditLimit: { gt: 0 } }, select: { phoneNumber: true, name: true, creditLimit: true, creditScore: true } });
+      if (!eligibles || eligibles.length === 0) return;
+
+      const payload = { customers: eligibles.map(c => ({ phoneNumber: c.phoneNumber, name: c.name, creditLimit: c.creditLimit, creditScore: c.creditScore })) };
+      try {
+        await firstValueFrom(this.http.post(simulUrl, payload));
+        console.log(`[Push-Eligibles] Enviados ${eligibles.length} clientes elegíveis ao simulador`);
+      } catch (err) {
+        console.warn('[Push-Eligibles] Falha ao enviar elegíveis para simulador:', err?.message || err);
+      }
+    } catch (err) {
+      console.error('[Push-Eligibles] Erro interno:', err?.message || err);
+    }
+  }
+
+  async syncBankClientes() {
     const importedCustomers: any[] = [];
     const failed: any[] = [];
-    const list = await this.fetchNewCustomers();
-    for (const c of list) {
-      try {
-        // Importa cliente SEM validar no banco (fica como "Não verificado")
-        const saved = await this.upsertCustomer(c, null);
-        // Tenta validar imediatamente com o banco
+    const removedCustomers: any[] = [];
+    const bankBase = process.env.BANK_BASE_URL || 'http://155.138.227.26:4500';
+    
+    try {
+      const resp = await firstValueFrom(this.http.get(`${bankBase}/api/clientes`));
+      const clientes = (resp as any).data?.clientes || [];
+      
+      console.log(`[Bank-Sync] Sincronizando ${clientes.length} clientes da Gestão de Clientes do banco`);
+
+      for (const bankCliente of clientes) {
         try {
-          const validation = await this.validateAndUpdateCustomer(saved.phoneNumber);
-          importedCustomers.push({
-            phoneNumber: c.phoneNumber,
-            id: saved.id,
-            status: validation?.success ? 'Verificado' : (saved.verified ? 'Verificado' : 'Não verificado'),
-            validation
+          // Buscar cliente existente pelo NUIT
+          const existing = await this.prisma.customer.findFirst({
+            where: {
+              OR: [
+                { nuit: bankCliente.nuit },
+                { biNumber: bankCliente.bi },
+                { phoneNumber: bankCliente.telefone }
+              ]
+            }
           });
-        } catch (validationError) {
-          importedCustomers.push({
-            phoneNumber: c.phoneNumber,
-            id: saved.id,
-            status: saved.verified ? 'Verificado' : 'Não verificado',
-            validation: { success: false, error: String(validationError?.message || validationError) }
+
+          const data = {
+            phoneNumber: bankCliente.telefone || `BANCO-${bankCliente.nuit}`,
+            name: bankCliente.nome_completo,
+            nuit: bankCliente.nuit,
+            biNumber: bankCliente.bi,
+            email: bankCliente.email || null,
+            creditLimit: bankCliente.limite_credito || 0,
+            creditScore: bankCliente.score_credito ?? null,
+            salary: bankCliente.salario || null,
+            salaryBank: bankCliente.empregador || null,
+            verified: true, // Veio do banco, então é verificado
+          } as any;
+
+          if (existing) {
+            const updated = await this.prisma.customer.update({
+              where: { id: existing.id },
+              data
+            });
+            importedCustomers.push({
+              nuit: bankCliente.nuit,
+              nome: bankCliente.nome_completo,
+              status: 'atualizado',
+              id: updated.id
+            });
+          } else {
+            const created = await this.prisma.customer.create({ data });
+            importedCustomers.push({
+              nuit: bankCliente.nuit,
+              nome: bankCliente.nome_completo,
+              status: 'criado',
+              id: created.id
+            });
+          }
+        } catch (err) {
+          failed.push({
+            nuit: bankCliente.nuit,
+            nome: bankCliente.nome_completo,
+            error: String(err?.message || err)
           });
         }
-      } catch (err) {
-        failed.push({ phoneNumber: c.phoneNumber, error: String(err?.message || err) });
       }
+
+      // Remover clientes que não existem mais no banco (comparando NUIT/BI)
+      const bankNuits = new Set<string>(clientes.filter((c: any) => c.nuit).map((c: any) => String(c.nuit)));
+      const bankBis = new Set<string>(clientes.filter((c: any) => c.bi).map((c: any) => String(c.bi)));
+
+      const deletable = await this.prisma.customer.findMany({
+        where: {
+          verified: true,
+          OR: [
+            { nuit: { not: null, notIn: Array.from(bankNuits) } },
+            { biNumber: { not: null, notIn: Array.from(bankBis) } },
+          ],
+        },
+        select: { id: true, phoneNumber: true, nuit: true, biNumber: true, name: true },
+      });
+
+      if (deletable.length > 0) {
+        const nuitsToDelete = deletable.filter((c) => c.nuit).map((c) => String(c.nuit));
+        const bisToDelete = deletable.filter((c) => c.biNumber).map((c) => String(c.biNumber));
+
+        await this.prisma.customer.deleteMany({
+          where: {
+            OR: [
+              { nuit: { in: nuitsToDelete } },
+              { biNumber: { in: bisToDelete } },
+            ],
+          },
+        });
+
+        removedCustomers.push(
+          ...deletable.map((c) => ({
+            id: c.id,
+            phoneNumber: c.phoneNumber,
+            nuit: c.nuit,
+            biNumber: c.biNumber,
+            status: 'removido (não existe mais no banco)',
+          }))
+        );
+
+        console.log(`[Bank-Sync] Removi ${deletable.length} clientes que saíram da Gestão de Clientes do banco`);
+      }
+
+      console.log(`[Bank-Sync] Sincronização concluída: ${importedCustomers.length} clientes processados`);
+      return {
+        synced: importedCustomers.length,
+        importedCustomers,
+        failed,
+        removed: removedCustomers.length,
+        removedCustomers,
+      };
+    } catch (error) {
+      console.error('[Bank-Sync] Erro ao sincronizar clientes do banco:', error.message);
+      return {
+        synced: importedCustomers.length,
+        importedCustomers,
+        failed,
+        removed: removedCustomers.length,
+        removedCustomers,
+        error: String(error?.message || error),
+      };
     }
-    return { synced: importedCustomers.length, importedCustomers, failed };
   }
 
-  @Interval(15000) // Run every 15 seconds
-  async autoSyncNewCustomers() {
+
+
+  @Interval(15000) // Run every 15 seconds (banco sync)
+  async autoSyncBankClientes() {
     try {
-      const result = await this.syncNewCustomers();
+      const result = await this.syncBankClientes();
       if (result.synced > 0) {
-        console.log(`[Auto-Sync] Synced ${result.synced} customers from simulator`);
+        console.log(`[Bank-Sync] Synced ${result.synced} customers from bank`);
       }
     } catch (error) {
-      console.error('[Auto-Sync] Error syncing customers:', error.message);
+      console.error('[Bank-Sync] Error syncing customers from bank:', error.message);
     }
   }
 
-  @Interval(15000) // Run every 15 seconds (same interval)
+  @Interval(15000) // Run every 15 seconds (loans sync)
   async autoSyncLoans() {
     try {
       const result = await this.syncLoans();
@@ -211,17 +389,38 @@ export class PayjaSyncService {
 
   async syncLoans() {
     const loans = await this.fetchSimulatorLoans();
+    console.log(`[Loan-Sync] syncLoans: fetched ${loans.length} loans`);
     const synced: any[] = [];
     const failed: any[] = [];
 
     for (const simLoan of loans) {
+      const loanId = String(simLoan.id);
+      console.log(`[Loan-Sync] processing simLoan id=${loanId} phone=${simLoan.phoneNumber}`);
       try {
-        // Buscar cliente pelo phoneNumber
-        const customer = await this.prisma.customer.findUnique({
-          where: { phoneNumber: simLoan.phoneNumber },
-        });
+        // Buscar cliente pelo phoneNumber (tentar variantes: direto, com prefixo 258, +258, por últimos 9 dígitos)
+        const rawPhone = String(simLoan.phoneNumber || '').replace(/[^0-9]/g, '');
+        let customer = null as any;
+        if (rawPhone) {
+          // direct match
+          customer = await this.prisma.customer.findUnique({ where: { phoneNumber: rawPhone } }).catch(() => null);
+          // try with country code
+          if (!customer) {
+            const with258 = rawPhone.startsWith('258') ? rawPhone : '258' + rawPhone;
+            customer = await this.prisma.customer.findUnique({ where: { phoneNumber: with258 } }).catch(() => null);
+          }
+          if (!customer) {
+            const withPlus = rawPhone.startsWith('+') ? rawPhone : '+258' + rawPhone.replace(/^\+?258/, '');
+            customer = await this.prisma.customer.findUnique({ where: { phoneNumber: withPlus } }).catch(() => null);
+          }
+          // fallback: match by last 9 digits
+          if (!customer) {
+            const last9 = rawPhone.slice(-9);
+            customer = await this.prisma.customer.findFirst({ where: { phoneNumber: { endsWith: last9 } } }).catch(() => null);
+          }
+        }
 
         if (!customer) {
+          console.log(`[Loan-Sync] no matching customer found for phone=${simLoan.phoneNumber}`);
           failed.push({
             id: simLoan.id,
             phoneNumber: simLoan.phoneNumber,
@@ -229,41 +428,64 @@ export class PayjaSyncService {
           });
           continue;
         }
+        console.log(`[Loan-Sync] matched customer id=${customer.id} phone=${customer.phoneNumber}`);
 
         const existing = await this.prisma.loan.findUnique({
-          where: { id: simLoan.id },
+          where: { id: loanId },
         });
 
-        // Calcular valores
-        const totalAmount = simLoan.amount * (1 + simLoan.interest / 100);
-        const termMonths = simLoan.term.includes('30') || simLoan.term.includes('mês') ? 1 : 12;
-        const monthlyPayment = totalAmount / termMonths;
+        // Calcular valores e normalizar campos do simulador
+        let interestNum = 0;
+        if (simLoan.interest !== undefined && simLoan.interest !== null) {
+          interestNum = Number(simLoan.interest) || 0;
+        } else if ((simLoan as any).interestPct) {
+          interestNum = Number((simLoan as any).interestPct) || 0;
+        }
+
+        // Normalize term: could be number of years or a string like '4' or '48 meses' or '4 anos'
+        let termYears = 0;
+        if (typeof simLoan.term === 'number') termYears = simLoan.term as any;
+        else if (typeof simLoan.term === 'string') {
+          const t = simLoan.term.trim();
+          const anosMatch = t.match(/(\d+)\s*anos?/i);
+          const mesesMatch = t.match(/(\d+)\s*mes/i);
+          if (anosMatch && anosMatch[1]) termYears = Number(anosMatch[1]);
+          else if (mesesMatch && mesesMatch[1]) termYears = Math.ceil(Number(mesesMatch[1]) / 12);
+          else {
+            const n = Number(t);
+            if (!isNaN(n)) termYears = n <= 10 ? n : Math.ceil(n / 12);
+          }
+        }
+
+        const termMonths = Math.max(1, termYears * 12);
+        const totalAmount = Number(simLoan.amount || 0) * (1 + (interestNum || 0) / 100);
+        const monthlyPayment = simLoan['monthlyPayment'] ? Number(simLoan['monthlyPayment']) : Math.round(totalAmount / termMonths);
 
         const loanData = {
           customerId: customer.id,
-          amount: simLoan.amount,
-          interestRate: simLoan.interest || 15,
+          amount: Number(simLoan.amount || 0),
+          interestRate: interestNum || 0,
           termMonths,
           purpose: simLoan.reason || 'N/A',
-          bankCode: simLoan.bank ? simLoan.bank.replace('Banco ', '').substring(0, 3) : null,
+          bankCode: simLoan.bank ? String(simLoan.bank).replace('Banco ', '').substring(0, 3) : null,
           bankName: simLoan.bank || null,
-          channel: 'MOVITEL',
+          channel: 'USSD',
           totalAmount,
           monthlyPayment,
           status: this.mapSimulatorStatus(simLoan.status),
-        };
+        } as any;
 
         if (existing) {
           // Update existing loan
           const updated = await this.prisma.loan.update({
-            where: { id: simLoan.id },
+            where: { id: loanId },
             data: {
               ...loanData,
               updatedAt: new Date(),
             },
           });
           synced.push({
-            id: simLoan.id,
+            id: loanId,
             phoneNumber: simLoan.phoneNumber,
             status: 'updated',
           });
@@ -271,21 +493,21 @@ export class PayjaSyncService {
           // Create new loan
           const created = await this.prisma.loan.create({
             data: {
-              id: simLoan.id,
+              id: loanId,
               ...loanData,
               createdAt: new Date(simLoan.createdAt),
               updatedAt: new Date(simLoan.updatedAt),
             },
           });
           synced.push({
-            id: simLoan.id,
+            id: loanId,
             phoneNumber: simLoan.phoneNumber,
             status: 'created',
           });
         }
       } catch (err) {
         failed.push({
-          id: simLoan.id,
+          id: loanId,
           phoneNumber: simLoan.phoneNumber,
           error: String(err?.message || err),
         });

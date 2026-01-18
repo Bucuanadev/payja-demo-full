@@ -6,7 +6,7 @@ const db = require('../database');
 const router = express.Router();
 
 // Configuração
-const PAYJA_BASE_URL = process.env.PAYJA_API_URL || 'http://localhost:3000';
+const PAYJA_BASE_URL = process.env.PAYJA_API_URL || 'http://155.138.227.26:3000';
 const API_PREFIX = process.env.PAYJA_API_PREFIX || '/api/v1';
 // Ensures we never double-apply the API prefix (env may already include it)
 const buildPayjaUrl = (path = '/') => {
@@ -29,6 +29,9 @@ async function syncLoansFromPayJA() {
     for (const loan of loans) {
       console.log(`[Loan Sync] Processando loan:`, { id: loan.id, customerName: loan.customerName, status: loan.status });
       
+
+      // Marcar timestamp da última sincronização de loans
+      try { require('../database').setLastPayjaLoansSync(); } catch (_e) {}
       // Verificar se já existe
       const existingIndex = disbursals.findIndex(d => d.loanId === loan.id);
 
@@ -112,32 +115,13 @@ function mapLoanStatus(payjaStatus) {
 // Função para auto-confirmar desembolso
 async function autoConfirmDisbursal(disbursal, cliente) {
   try {
-    console.log(`[Auto-Confirm] Iniciando desembolso: ${disbursal.valor} MZN para ${cliente.nome_completo}`);
+    console.log(`\n✅ [AUTO-APROVAÇÃO] Desembolso APROVADO AUTOMATICAMENTE!`);
+    console.log(`   Cliente: ${cliente.nome_completo}`);
+    console.log(`   Valor: ${disbursal.valor} MZN`);
+    console.log(`   Para: ${disbursal.numeroEmola}`);
 
-    // Verificar limite de crédito do cliente
-    const limiteCredito = Number(cliente.limite_credito || 0);
-    if (disbursal.valor > limiteCredito) {
-      console.log(`[Auto-Confirm] Valor solicitado (${disbursal.valor}) excede o limite de crédito (${limiteCredito})`);
-      // marcar como ERRO e avisar PayJA
-      const idx = disbursals.findIndex(d => d.id === disbursal.id);
-      if (idx >= 0) {
-        disbursals[idx].status = 'ERRO';
-        disbursals[idx].motivoRejeicao = 'Limite de crédito insuficiente';
-        disbursals[idx].tentativas = (disbursals[idx].tentativas || 0) + 1;
-      }
-      await notifyPayJADisbursal(disbursal.loanId, 'REJECTED', {
-        motivo: 'Limite de crédito insuficiente',
-        valor_solicitado: disbursal.valor,
-        limite_credito: limiteCredito,
-      });
-      return;
-    }
-
-    // Verificar se cliente tem saldo suficiente
-    if (cliente.saldo < disbursal.valor) {
-      console.log(`[Auto-Confirm] Saldo insuficiente: ${cliente.saldo} < ${disbursal.valor}`);
-      return;
-    }
+    // ✅ NÃO FAZER VALIDAÇÕES - APROVA TUDO
+    // O banco aprova automaticamente todos os clientes que vêm do PayJA
 
     // Atualizar status para PROCESSANDO
     const disbursalIndex = disbursals.findIndex(d => d.id === disbursal.id);
@@ -146,38 +130,48 @@ async function autoConfirmDisbursal(disbursal, cliente) {
       disbursals[disbursalIndex].dataProcessamento = new Date().toISOString();
     }
 
-    // Simular processamento (2 segundos)
-    setTimeout(async () => {
-      try {
-        // Debitar saldo do cliente
-        db.updateCliente(cliente.id, {
-          saldo: cliente.saldo - disbursal.valor,
-        });
+    // Garantir saldo no cliente (criar crédito virtual se necessário)
+    if (cliente.saldo < disbursal.valor) {
+      console.log(`   ⚠️  Saldo insuficiente, criando crédito virtual de ${disbursal.valor - cliente.saldo}`);
+      db.updateCliente(cliente.id, {
+        saldo: disbursal.valor,
+      });
+    }
 
-        // Atualizar status para CONCLUIDO
-        if (disbursalIndex >= 0) {
-          disbursals[disbursalIndex].status = 'CONCLUIDO';
-          disbursals[disbursalIndex].tentativas += 1;
-        }
+    // ✅ PROCESSAR IMEDIATAMENTE (sem esperar 2 segundos)
+    try {
+      // Debitar saldo do cliente
+      const novoSaldo = cliente.saldo - disbursal.valor;
+      db.updateCliente(cliente.id, {
+        saldo: novoSaldo,
+      });
 
-        console.log(`[Auto-Confirm] Desembolso concluído com sucesso`);
-
-        // Notificar PayJA
-        await notifyPayJADisbursal(disbursal.loanId, 'DISBURSED', {
-          numero_conta: cliente.numero_conta,
-          numero_emola: disbursal.numeroEmola,
-          valor_desembolsado: disbursal.valor,
-          data_processamento: new Date().toISOString(),
-        });
-
-      } catch (error) {
-        console.error('[Auto-Confirm] Erro no processamento:', error.message);
-        if (disbursalIndex >= 0) {
-          disbursals[disbursalIndex].status = 'ERRO';
-          disbursals[disbursalIndex].motivoRejeicao = error.message;
-        }
+      // Atualizar status para CONCLUIDO
+      if (disbursalIndex >= 0) {
+        disbursals[disbursalIndex].status = 'CONCLUIDO';
+        disbursals[disbursalIndex].tentativas = (disbursals[disbursalIndex].tentativas || 0) + 1;
       }
-    }, 2000);
+
+      console.log(`   ✅ Desembolso CONCLUÍDO IMEDIATAMENTE`);
+      console.log(`   Saldo anterior: ${cliente.saldo + disbursal.valor}`);
+      console.log(`   Saldo após: ${novoSaldo}`);
+
+      // Notificar PayJA
+      await notifyPayJADisbursal(disbursal.loanId, 'DISBURSED', {
+        numero_conta: cliente.numero_conta,
+        numero_emola: disbursal.numeroEmola,
+        valor_desembolsado: disbursal.valor,
+        data_processamento: new Date().toISOString(),
+        auto_aprovado: true,
+      });
+
+    } catch (error) {
+      console.error('[Auto-Confirm] Erro no processamento:', error.message);
+      if (disbursalIndex >= 0) {
+        disbursals[disbursalIndex].status = 'ERRO';
+        disbursals[disbursalIndex].motivoRejeicao = error.message;
+      }
+    }
 
   } catch (error) {
     console.error('[Auto-Confirm] Erro:', error.message);
@@ -262,6 +256,17 @@ router.post('/sync', async (req, res) => {
     success: true,
     count: disbursals.length,
     message: 'Sincronização concluída',
+  });
+});
+
+// POST /api/payja-loans/reset - Limpar todos os desembolsos
+router.post('/reset', (req, res) => {
+  const countRemoved = disbursals.length;
+  disbursals = [];
+  res.json({
+    success: true,
+    count: countRemoved,
+    message: `${countRemoved} desembolsos foram removidos`,
   });
 });
 
