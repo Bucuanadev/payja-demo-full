@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="pt-MZ">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clientes Registados - USSD 898</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 40px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .header-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #fff;
+            color: #667eea;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+            border: 2px solid #fff;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 16px 12px 40px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            pointer-events: none;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f8f9fa;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        th {
+            padding: 16px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1c1c1e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+            color: #1c1c1e;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-verified {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-blocked {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #667eea;
+            color: #fff;
+        }
+
+        .btn-small:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #fff;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #1c1c1e;
+        }
+
+        .modal-field {
+            margin-bottom: 16px;
+        }
+
+        .modal-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #8e8e93;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .modal-value {
+            font-size: 15px;
+            color: #1c1c1e;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            word-break: break-all;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 30px;
+            color: #999;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+                gap: 20px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .search-box {
+                min-width: auto;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 12px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1><i class="fas fa-database"></i> Clientes Registados</h1>
+                <div class="header-subtitle">Histórico de registros via *299# USSD</div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="location.href='/'">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </button>
+                <button class="btn btn-primary" onclick="refreshData()">
+                    <i class="fas fa-sync"></i> Atualizar
+                </button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="message"></div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-count">0</div>
+                    <div class="stat-label">Total de Clientes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="verified-count">0</div>
+                    <div class="stat-label">Clientes Verificados</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="pending-count">0</div>
+                    <div class="stat-label">Pendentes de Verificação</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="blocked-count">0</div>
+                    <div class="stat-label">Clientes Bloqueados</div>
+                </div>
+            </div>
+
+            <div class="filters">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="search" placeholder="Buscar por nome ou telefone..." onkeyup="filterTable()">
+                </div>
+            </div>
+
+            <div id="loading" class="loading" style="display: none;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 32px;"></i>
+                <p>Carregando dados...</p>
+            </div>
+
+            <div id="content" style="display: none;">
+                <div class="table-wrapper">
+                    <table id="customersTable">
+                        <thead>
+                            <tr>
+                                <th>Telefone</th>
+                                <th>Nome</th>
+                                <th>NUIT</th>
+                                <th>Status</th>
+                                <th>Data de Registo</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="empty" class="empty-state" style="display: none;">
+                <i class="fas fa-inbox"></i>
+                <p>Nenhum cliente registado ainda</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Detalhes -->
+    <div id="detailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Detalhes do Cliente</div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://155.138.227.26:3001/api/ussd';
+        const STORAGE_KEY = 'ussdSimDataV2';
+        let allCustomers = [];
+
+        const loadFromLocal = () => {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                const db = raw ? JSON.parse(raw) : { customers: [] };
+                return (db.customers || []).map((c) => ({
+                    phoneNumber: c.phoneNumber,
+                    name: c.registrationData?.name || '',
+                    nuit: c.registrationData?.nuit || '',
+                    createdAt: c.registrationData?.createdAt || new Date().toISOString(),
+                    verified: c.status === 'eligible',
+                    blocked: false,
+                }));
+            } catch (err) {
+                console.warn('Erro ao ler localStorage:', err);
+                return [];
+            }
+        };
+
+        const computeStats = (customers) => ({
+            total: customers.length,
+            verified: customers.filter((c) => c.verified).length,
+            pending: customers.filter((c) => !c.verified && !c.blocked).length,
+            blocked: customers.filter((c) => c.blocked).length,
+        });
+
+        async function loadCustomers() {
+            const loading = document.getElementById('loading');
+            const content = document.getElementById('content');
+            const empty = document.getElementById('empty');
+            const tbody = document.getElementById('tbody');
+
+            loading.style.display = 'block';
+            content.style.display = 'none';
+            empty.style.display = 'none';
+
+            try {
+                const response = await fetch(API_URL + '/customers');
+                const data = await response.json();
+
+                if (response.ok && data.customers) {
+                    allCustomers = data.customers;
+                    updateStats(data.stats);
+                    renderTable(allCustomers);
+                    content.style.display = 'block';
+
+                    if (allCustomers.length === 0) {
+                        tbody.innerHTML = '';
+                        empty.style.display = 'block';
+                    }
+                } else {
+                    const fallback = loadFromLocal();
+                    if (fallback.length) {
+                        allCustomers = fallback;
+                        updateStats(computeStats(fallback));
+                        renderTable(fallback);
+                        content.style.display = 'block';
+                        showMessage('Modo local: exibindo dados do navegador (ussdSimDataV2).', 'success');
+                    } else {
+                        showMessage('Erro ao carregar clientes: ' + (data.error || 'Erro desconhecido'), 'error');
+                        empty.style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                const fallback = loadFromLocal();
+                if (fallback.length) {
+                    allCustomers = fallback;
+                    updateStats(computeStats(fallback));
+                    renderTable(fallback);
+                    content.style.display = 'block';
+                    showMessage('Modo local: exibindo dados do navegador (ussdSimDataV2).', 'success');
+                } else {
+                    showMessage('Erro de conexão: ' + err.message, 'error');
+                    empty.style.display = 'block';
+                }
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function updateStats(stats) {
+            document.getElementById('total-count').textContent = stats?.total || 0;
+            document.getElementById('verified-count').textContent = stats?.verified || 0;
+            document.getElementById('pending-count').textContent = stats?.pending || 0;
+            document.getElementById('blocked-count').textContent = stats?.blocked || 0;
+        }
+
+        function renderTable(customers) {
+            const tbody = document.getElementById('tbody');
+            tbody.innerHTML = customers.map(customer => `
+                <tr>
+                    <td><strong>${customer.phoneNumber}</strong></td>
+                    <td>${customer.name || '—'}</td>
+                    <td>${customer.nuit || '—'}</td>
+                    <td>
+                        ${getStatusBadge(customer.verified, customer.blocked)}
+                    </td>
+                    <td>${formatDate(customer.createdAt)}</td>
+                    <td>
+                        <div class="actions">
+                            <button class="btn-small" onclick="viewDetails('${customer.phoneNumber}')">
+                                <i class="fas fa-eye"></i> Ver
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function getStatusBadge(verified, blocked) {
+            if (blocked) {
+                return '<span class="badge badge-blocked"><i class="fas fa-lock"></i> Bloqueado</span>';
+            }
+            if (verified) {
+                return '<span class="badge badge-verified"><i class="fas fa-check"></i> Verificado</span>';
+            }
+            return '<span class="badge badge-pending"><i class="fas fa-hourglass-half"></i> Pendente</span>';
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('pt-MZ') + ' ' + date.toLocaleTimeString('pt-MZ', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function filterTable() {
+            const search = document.getElementById('search').value.toLowerCase();
+            const filtered = allCustomers.filter(c =>
+                c.phoneNumber.toLowerCase().includes(search) ||
+                (c.name && c.name.toLowerCase().includes(search)) ||
+                (c.nuit && c.nuit.toLowerCase().includes(search))
+            );
+            renderTable(filtered);
+        }
+
+        function viewDetails(phoneNumber) {
+            const customer = allCustomers.find(c => c.phoneNumber === phoneNumber);
+            if (!customer) return;
+
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = `
+                <div class="modal-field">
+                    <div class="modal-label">Telefone</div>
+                    <div class="modal-value">${customer.phoneNumber}</div>
+                </div>
+                <div class="modal-field">
+                    <div class="modal-label">Nome Completo</div>
+                    <div class="modal-value">${customer.name || '—'}</div>
+                </div>
+                <div class="modal-field">
+                    <div class="modal-label">NUIT</div>
+                    <div class="modal-value">${customer.nuit || '—'}</div>
+                </div>
+                <div class="modal-field">
+                    <div class="modal-label">Data de Nascimento</div>
+                    <div class="modal-value">${customer.dateOfBirth ? formatDate(customer.dateOfBirth) : '—'}</div>
+                </div>
+                <div class="modal-field">
+                    <div class="modal-label">Endereço</div>
+                    <div class="modal-value">${customer.address || '—'}</div>
+                </div>
+                <div class="modal-field">
+                    <div class="modal-label">Distrito</div>
+                    <div class="modal-value">${customer.district || '—'}</div>
+                </div>
+                <div class="modal-field">
+                    <div class="modal-label">Província</div>
+                    <div class="modal-value">${customer.province || '—'}</div>
+                </div>
+                <div class="modal-field">
+                    <div class="modal-label">Status</div>
+                    <div class="modal-value">${getStatusBadge(customer.verified, customer.blocked)}</div>
+                </div>
+                <div class="modal-field">
+                    <div class="modal-label">Data de Registo</div>
+                    <div class="modal-value">${formatDate(customer.createdAt)}</div>
+                </div>
+                <div class="modal-field">
+                    <div class="modal-label">Último Acesso</div>
+                    <div class="modal-value">${customer.lastAccess ? formatDate(customer.lastAccess) : '—'}</div>
+                </div>
+            `;
+            document.getElementById('detailsModal').classList.add('active');
+        }
+
+        function showMessage(msg, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.className = type === 'error' ? 'error' : 'success';
+            messageDiv.innerHTML = `<i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'}"></i> ${msg}`;
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+                messageDiv.className = '';
+            }, 5000);
+        }
+
+        function refreshData() {
+            loadCustomers();
+        }
+
+        // Fechar modal ao clicar fora
+        document.getElementById('detailsModal').addEventListener('click', (e) => {
+            if (e.target.id === 'detailsModal') {
+                document.getElementById('detailsModal').classList.remove('active');
+            }
+        });
+
+        // Carregar dados ao abrir a página
+        loadCustomers();
+    </script>
+</body>
+</html>

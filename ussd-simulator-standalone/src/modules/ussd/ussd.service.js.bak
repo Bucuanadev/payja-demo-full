@@ -1,0 +1,146 @@
+import { v4 as uuidv4 } from 'uuid';
+
+export class UssdSession {
+  static FLOWS = {
+    UNIFIED: 'unified',
+  };
+
+  static STEPS = {
+    UNIFIED: {
+      START: 0,
+      CHECK_REGISTRATION: 1,
+      // Registro
+      REQUEST_NUIT: 2,
+      REQUEST_NAME: 3,
+      REQUEST_BI: 4,
+      VALIDATING: 5,
+      REGISTRATION_COMPLETE: 6,
+      // Empréstimo
+      REQUEST_AMOUNT: 10,
+      CONFIRM_LOAN: 11,
+      PROCESSING: 12,
+      LOAN_COMPLETE: 13,
+      // Erro
+      ERROR: -1,
+    },
+  };
+
+  constructor(phoneNumber, flow) {
+    this.id = uuidv4();
+    this.phoneNumber = phoneNumber;
+    this.flow = flow;
+    this.currentStep = 0;
+    this.data = {};
+    this.status = 'active';
+    this.startedAt = new Date();
+    this.timeout = 5 * 60 * 1000;
+    this.expiresAt = new Date(Date.now() + this.timeout);
+    this.isNewCustomer = false;
+  }
+
+  isExpired() {
+    return new Date() > this.expiresAt;
+  }
+
+  nextStep() {
+    this.currentStep++;
+    this.expiresAt = new Date(Date.now() + this.timeout);
+  }
+
+  setData(key, value) {
+    this.data[key] = value;
+  }
+
+  getData(key) {
+    return this.data[key];
+  }
+
+  markCompleted() {
+    this.status = 'completed';
+  }
+
+  markError(message) {
+    this.status = 'error';
+    this.setData('error', message);
+  }
+
+  toJSON() {
+    return {
+      id: this.id,
+      phoneNumber: this.phoneNumber,
+      flow: this.flow,
+      currentStep: this.currentStep,
+      data: this.data,
+      status: this.status,
+      startedAt: this.startedAt,
+      expiresAt: this.expiresAt,
+      isNewCustomer: this.isNewCustomer,
+    };
+  }
+}
+
+export class UssdFlowEngine {
+  getResponse(session) {
+    const steps = UssdSession.STEPS.UNIFIED;
+
+    // Detectar fluxo
+    if (session.currentStep === steps.CHECK_REGISTRATION) {
+      if (session.isNewCustomer) {
+        return `CON Bem-vindo ao PayJA!\nRegistro via *898#\n\nVocê será registrado. Continue para iniciar.`;
+      } else {
+        return `CON Bem-vindo ${session.getData('name') || 'Cliente'}!\n\nSeu limite: ${session.getData('creditLimit')} MZN\n\nContinue para solicitar empréstimo.`;
+      }
+    }
+
+    // FLUXO DE REGISTRO
+    if (session.currentStep === steps.REQUEST_NUIT) {
+      return `CON Registro PayJA\n\nIntroduza seu número NUIT:`;
+    }
+
+    if (session.currentStep === steps.REQUEST_NAME) {
+      return `CON Introduza seu nome completo:`;
+    }
+
+    if (session.currentStep === steps.REQUEST_BI) {
+      return `CON Introduza seu número BI:`;
+    }
+
+    if (session.currentStep === steps.VALIDATING) {
+      return `CON Validando com banco parceiro...\nAguarde...`;
+    }
+
+    if (session.currentStep === steps.REGISTRATION_COMPLETE) {
+      const limit = session.getData('creditLimit');
+      const bank = session.getData('salaryBank');
+      return `END ✅ Registrado com sucesso!\n\nBanco: ${bank}\nLimite aprovado: ${limit} MZN\n\nSMS enviado para confirmação.`;
+    }
+
+    // FLUXO DE EMPRÉSTIMO
+    if (session.currentStep === steps.REQUEST_AMOUNT) {
+      const limit = session.getData('creditLimit');
+      return `CON Solicitação de Empréstimo\n\nSeu limite: ${limit} MZN\n\nIntroduza o valor desejado:`;
+    }
+
+    if (session.currentStep === steps.CONFIRM_LOAN) {
+      const amount = session.getData('amount');
+      return `CON Confirma empréstimo de ${amount} MZN?\n\n1. Confirmar\n0. Cancelar`;
+    }
+
+    if (session.currentStep === steps.PROCESSING) {
+      return `CON Processando seu pedido...\nDesembolso em andamento...`;
+    }
+
+    if (session.currentStep === steps.LOAN_COMPLETE) {
+      const amount = session.getData('amount');
+      return `END ✅ Empréstimo aprovado!\n\nValor: ${amount} MZN\nDesembolso realizado.\n\nSMS enviado com detalhes.`;
+    }
+
+    // ERRO
+    if (session.currentStep === steps.ERROR) {
+      const error = session.getData('error') || 'Erro desconhecido';
+      return `END ❌ Erro: ${error}\n\nTente novamente mais tarde.`;
+    }
+
+    return `END Erro no fluxo USSD`;
+  }
+}

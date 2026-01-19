@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="pt-MZ">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APIs de Integração - USSD 898 / PayJA</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 24px;
+            color: #1c1c1e;
+        }
+        .shell {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+            overflow: hidden;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 36px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+        header h1 { font-size: 28px; margin-bottom: 6px; }
+        header p { opacity: 0.9; font-size: 14px; }
+        .pill {
+            background: rgba(255,255,255,0.15);
+            padding: 10px 16px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.3);
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .content { padding: 28px; display: grid; gap: 24px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+        .card {
+            background: #f8f9ff;
+            border: 1px solid #e7e9f5;
+            border-radius: 14px;
+            padding: 18px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+        }
+        .card h3 { margin-bottom: 8px; font-size: 16px; }
+        .card p { font-size: 14px; color: #4b5563; line-height: 1.5; }
+        .endpoint {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+            background: #111827;
+            color: #e5e7eb;
+            padding: 12px 14px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-size: 13px;
+            position: relative;
+            overflow: hidden;
+        }
+        .endpoint .verb { color: #34d399; font-weight: 700; margin-right: 8px; }
+        .endpoint button {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .section-title { font-weight: 700; font-size: 15px; margin-bottom: 8px; color: #111827; }
+        .muted { color: #6b7280; font-size: 13px; }
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        th, td { text-align: left; padding: 10px 12px; font-size: 13px; }
+        thead { background: #f3f4f6; }
+        tbody tr:nth-child(even) { background: #f9fafb; }
+        .badge { padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+        .badge-pending { background: #fff7ed; color: #c2410c; }
+        .badge-eligible { background: #ecfdf3; color: #166534; }
+        .btn { border: none; padding: 10px 14px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+        .btn-primary { background: #667eea; color: #fff; }
+        .btn-ghost { background: #eef2ff; color: #4338ca; }
+        .form { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 10px; margin-top: 10px; }
+        input, select {
+            width: 100%; padding: 12px 14px; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 13px;
+        }
+        input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.15); }
+        pre { background: #0b1021; color: #e5e7eb; padding: 12px; border-radius: 10px; overflow: auto; font-size: 12px; }
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #111827;
+            color: #fff;
+            padding: 12px 16px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <header>
+            <div>
+                <h1><i class="fas fa-plug"></i> Integração PayJA</h1>
+                <p>Endpoints para o PayJA recolher registos USSD e devolver elegibilidade/limite.</p>
+            </div>
+            <div class="pill"><i class="fas fa-satellite-dish"></i> Base URL: http://155.138.227.26:3001</div>
+        </header>
+
+        <div class="content">
+            <div class="grid">
+                <div class="card">
+                    <h3>1) Buscar clientes recém-registados</h3>
+                    <p>Retorna os clientes confirmados por OTP no USSD e ainda sem limite definido.</p>
+                    <div class="endpoint"><span class="verb">GET</span>/api/payja/ussd/new-customers<button onclick="copyText('/api/payja/ussd/new-customers')">Copiar</button></div>
+                    <pre id="sample-new-customers">{
+  "success": true,
+  "data": [{
+    "phoneNumber": "875551234",
+    "name": "",
+    "nuit": "",
+    "bi": "",
+    "institution": "",
+    "registeredAt": "2025-12-11T10:00:00Z"
+  }]
+}</pre>
+                </div>
+                <div class="card">
+                    <h3>2) Devolver elegibilidade e limite</h3>
+                    <p>O PayJA envia o limite aprovado e mínimo. O simulador grava e mostra no *299#.</p>
+                    <div class="endpoint"><span class="verb">POST</span>/api/payja/ussd/eligibility<button onclick="copyText('/api/payja/ussd/eligibility')">Copiar</button></div>
+                    <pre>{
+  "phoneNumber": "875551234",
+  "eligible": true,
+  "creditLimit": 25000,
+  "minAmount": 500,
+  "reason": "Score aprovado"
+}</pre>
+                </div>
+                <div class="card">
+                    <h3>3) Status da solicitação</h3>
+                    <p>Opcional para o PayJA devolver o estado do pedido enviado pelo cliente.</p>
+                    <div class="endpoint"><span class="verb">POST</span>/api/payja/ussd/loan-decision<button onclick="copyText('/api/payja/ussd/loan-decision')">Copiar</button></div>
+                    <pre>{
+  "phoneNumber": "875551234",
+  "amount": 5000,
+  "status": "APPROVED",
+  "message": "Desembolso agendado"
+}</pre>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-title">Painel local do simulador</div>
+                <p class="muted">Use os controlos abaixo para simular as respostas do PayJA. Os dados são guardados em localStorage (chave ussdSimDataV2).</p>
+
+                <div class="form">
+                    <div>
+                        <label class="muted">Telefone</label>
+                        <input id="eligPhone" placeholder="875551234" />
+                    </div>
+                    <div>
+                        <label class="muted">Limite aprovado</label>
+                        <input id="eligLimit" type="number" placeholder="25000" />
+                    </div>
+                    <div>
+                        <label class="muted">Mínimo</label>
+                        <input id="eligMin" type="number" placeholder="500" />
+                    </div>
+                    <div>
+                        <label class="muted">Nota</label>
+                        <input id="eligReason" placeholder="Score aprovado" />
+                    </div>
+                </div>
+                <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+                    <button class="btn btn-primary" onclick="applyEligibility()"><i class="fas fa-check-circle"></i> Aplicar elegibilidade</button>
+                    <button class="btn btn-ghost" onclick="copyNewCustomers()"><i class="fas fa-copy"></i> Copiar JSON de novos clientes</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-title">Registos a enviar para PayJA</div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead><tr><th>Telefone</th><th>NUIT</th><th>BI</th><th>Instituição</th><th>Estado</th><th>Desde</th></tr></thead>
+                        <tbody id="pending-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-title">Solicitações enviadas pelos clientes</div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead><tr><th>Telefone</th><th>Valor</th><th>Banco</th><th>Motivo</th><th>Status</th><th>Data</th></tr></thead>
+                        <tbody id="loans-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        const STORAGE_KEY = 'ussdSimDataV2';
+
+        const loadDb = () => {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                return raw ? JSON.parse(raw) : { customers: [] };
+            } catch (err) {
+                console.error('Erro ao ler storage', err);
+                return { customers: [] };
+            }
+        };
+
+        const saveDb = (db) => localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+
+        const copyText = async (text) => {
+            try {
+                await navigator.clipboard.writeText(text);
+                toast('Copiado!');
+            } catch (err) {
+                toast('Não foi possível copiar');
+            }
+        };
+
+        const toast = (msg) => {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 1800);
+        };
+
+        const formatMoney = (v) => `${Number(v || 0).toLocaleString('pt-MZ')} MZN`;
+
+        const applyEligibility = () => {
+            const phone = document.getElementById('eligPhone').value.trim();
+            const limit = Number(document.getElementById('eligLimit').value || 0);
+            const min = Number(document.getElementById('eligMin').value || 0);
+            const reason = document.getElementById('eligReason').value.trim() || 'Score aprovado';
+            if (!phone) return toast('Informe o telefone.');
+            if (!limit || !min) return toast('Informe limite e mínimo.');
+
+            const db = loadDb();
+            let customer = db.customers.find((c) => c.phoneNumber === phone);
+            if (!customer) {
+                customer = { phoneNumber: phone, status: 'eligible', loans: [] };
+                db.customers.push(customer);
+            }
+            customer.status = 'eligible';
+            customer.eligibility = { limit, min, reason, updatedAt: new Date().toISOString() };
+            saveDb(db);
+            toast('Elegibilidade aplicada.');
+            renderTables();
+        };
+
+        const copyNewCustomers = async () => {
+            const db = loadDb();
+            const payload = {
+                success: true,
+                data: db.customers
+                    .filter((c) => c.status === 'registered')
+                    .map((c) => ({
+                        phoneNumber: c.phoneNumber,
+                        name: c.registrationData?.name || '',
+                        nuit: c.registrationData?.nuit || '',
+                        bi: c.registrationData?.bi || '',
+                        institution: c.registrationData?.institution || '',
+                        registeredAt: c.registrationData?.createdAt || new Date().toISOString(),
+                    })),
+            };
+            await copyText(JSON.stringify(payload, null, 2));
+        };
+
+        const renderTables = () => {
+            const db = loadDb();
+            const pendingBody = document.getElementById('pending-body');
+            const loansBody = document.getElementById('loans-body');
+            pendingBody.innerHTML = '';
+            loansBody.innerHTML = '';
+
+            const pending = db.customers.filter((c) => c.status === 'registered');
+            if (!pending.length) {
+                pendingBody.innerHTML = '<tr><td colspan="6">Sem registos pendentes.</td></tr>';
+            } else {
+                pending.forEach((c) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${c.phoneNumber}</td>
+                        <td>${c.registrationData?.nuit || '-'}</td>
+                        <td>${c.registrationData?.bi || '-'}</td>
+                        <td>${c.registrationData?.institution || '-'}</td>
+                        <td><span class="badge badge-pending">Pendente</span></td>
+                        <td>${new Date(c.registrationData?.createdAt || Date.now()).toLocaleString()}</td>`;
+                    pendingBody.appendChild(row);
+                });
+            }
+
+            const loans = db.customers.flatMap((c) => (c.loans || []).map((l) => ({ ...l, phoneNumber: c.phoneNumber })));
+            if (!loans.length) {
+                loansBody.innerHTML = '<tr><td colspan="6">Sem solicitações.</td></tr>';
+            } else {
+                loans.slice(-20).forEach((l) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${l.phoneNumber}</td>
+                        <td>${formatMoney(l.amount)}</td>
+                        <td>${l.bank || '-'}</td>
+                        <td>${l.reason || '-'}</td>
+                        <td><span class="badge ${l.status === 'ENVIADO_PAYJA' ? 'badge-pending' : 'badge-eligible'}">${l.status}</span></td>
+                        <td>${new Date(l.createdAt || Date.now()).toLocaleString()}</td>`;
+                    loansBody.appendChild(row);
+                });
+            }
+        };
+
+        // Seed sample data in the sample block for readability
+        const seedSample = () => {
+            const db = loadDb();
+            if (!db.customers.length) {
+                db.customers.push({
+                    phoneNumber: '875551234',
+                    status: 'registered',
+                    registrationData: {
+                        nuit: '123456789',
+                        bi: '1234567',
+                        institution: 'GHW Labs',
+                        createdAt: new Date().toISOString(),
+                    },
+                    loans: [],
+                });
+                saveDb(db);
+            }
+        };
+
+        seedSample();
+        renderTables();
+    </script>
+</body>
+</html>

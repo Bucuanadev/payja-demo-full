@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Empréstimos - USSD Simulator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header h1 i {
+            font-size: 32px;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-card.pending .value { color: #f59e0b; }
+        .stat-card.approved .value { color: #10b981; }
+        .stat-card.rejected .value { color: #ef4444; }
+
+        .table-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow-x: auto;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-input {
+            padding: 10px 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-select {
+            padding: 10px 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        thead {
+            background: #f9fafb;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e5e7eb;
+            color: #6b7280;
+        }
+
+        tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: inline-block;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-approved {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-disbursed {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .action-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 5px;
+            transition: all 0.2s;
+        }
+
+        .btn-approve {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-approve:hover {
+            background: #059669;
+        }
+
+        .btn-reject {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-reject:hover {
+            background: #dc2626;
+        }
+
+        .btn-back {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-back:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-reset {
+            padding: 12px 16px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-reset:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .score-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .score-high { background: #d1fae5; color: #065f46; }
+        .score-medium { background: #fef3c7; color: #92400e; }
+        .score-low { background: #fee2e2; color: #991b1b; }
+        .score-none { background: #f3f4f6; color: #6b7280; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <i class="fas fa-hand-holding-usd"></i>
+                Gestão de Empréstimos
+            </h1>
+            <div style="display:flex; gap:12px; align-items:center;">
+                <button class="btn-reset" onclick="resetLoans()">
+                    <i class="fas fa-broom"></i>
+                    Reset Dados
+                </button>
+                <a href="/" class="btn-back">
+                    <i class="fas fa-arrow-left"></i>
+                    Voltar ao Painel
+                </a>
+            </div>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <h3>Total de Empréstimos</h3>
+                <div class="value" id="totalLoans">0</div>
+            </div>
+            <div class="stat-card pending">
+                <h3>Pendentes</h3>
+                <div class="value" id="pendingLoans">0</div>
+            </div>
+            <div class="stat-card approved">
+                <h3>Aprovados</h3>
+                <div class="value" id="approvedLoans">0</div>
+            </div>
+            <div class="stat-card rejected">
+                <h3>Rejeitados</h3>
+                <div class="value" id="rejectedLoans">0</div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div class="filters">
+                <input 
+                    type="text" 
+                    class="filter-input" 
+                    id="searchInput" 
+                    placeholder="🔍 Pesquisar por cliente ou telefone..."
+                />
+                <select class="filter-select" id="statusFilter">
+                    <option value="">Todos os Status</option>
+                    <option value="pending">Pendente</option>
+                    <option value="approved">Aprovado</option>
+                    <option value="rejected">Rejeitado</option>
+                    <option value="disbursed">Desembolsado</option>
+                </select>
+            </div>
+
+            <table id="loansTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Cliente</th>
+                        <th>Telefone</th>
+                        <th>Valor</th>
+                        <th>Prazo</th>
+                        <th>Juros</th>
+                        <th>Motivo</th>
+                        <th>Banco</th>
+                        <th>Status</th>
+                        <th>Score</th>
+                        <th>Data</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="loansBody">
+                    <tr>
+                        <td colspan="12" class="empty-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Carregando empréstimos...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let allLoans = [];
+
+        async function loadLoans() {
+            try {
+                const response = await fetch('/api/loans');
+                const data = await response.json();
+                let loansData = [];
+                if (data) {
+                    if (Array.isArray(data)) loansData = data;
+                    else if (Array.isArray(data.loans)) loansData = data.loans;
+                    else if (Array.isArray(data.data)) loansData = data.data;
+                }
+                // Normalize fields for the UI
+                allLoans = loansData.map(l => ({
+                    id: String(l.id || ''),
+                    phoneNumber: l.phoneNumber || l.phone || '',
+                    customerName: l.customerName || l.name || l.customer || '',
+                    amount: l.amount || 0,
+                    term: l.term || l.duration || '',
+                    interest: (l.interest || l.interestPct || l.interestPct === 0) ? (l.interest || l.interestPct) : null,
+                    reason: l.reason || '',
+                    bank: l.bank || '',
+                    status: (l.status || '').toString().toLowerCase(),
+                    score: l.score || null,
+                    createdAt: l.createdAt || l.created_at || new Date().toISOString()
+                }));
+                updateStats();
+                renderLoans(allLoans);
+            } catch (error) {
+                console.error('Erro ao carregar empréstimos:', error);
+                document.getElementById('loansBody').innerHTML = `
+                    <tr>
+                        <td colspan="12" class="empty-state">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p>Erro ao carregar empréstimos</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalLoans').textContent = allLoans.length;
+            document.getElementById('pendingLoans').textContent = allLoans.filter(l => l.status === 'pending').length;
+            document.getElementById('approvedLoans').textContent = allLoans.filter(l => l.status === 'approved').length;
+            document.getElementById('rejectedLoans').textContent = allLoans.filter(l => l.status === 'rejected').length;
+        }
+
+        function renderLoans(loans) {
+            const tbody = document.getElementById('loansBody');
+            
+            if (!loans || loans.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="12" class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <p>Nenhum empréstimo encontrado</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = loans.map(loan => {
+                const statusClass = `status-${loan.status || 'pending'}`;
+                const statusText = {
+                    pending: 'Pendente',
+                    approved: 'Aprovado',
+                    rejected: 'Rejeitado',
+                    disbursed: 'Desembolsado'
+                }[loan.status] || loan.status;
+
+                const scoreClass = loan.score >= 700 ? 'score-high' :
+                                 loan.score >= 500 ? 'score-medium' :
+                                 loan.score ? 'score-low' : 'score-none';
+                const scoreText = loan.score ? loan.score : 'N/A';
+
+                const date = new Date(loan.createdAt);
+                const dateStr = date.toLocaleDateString('pt-PT') + ' ' + date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+
+                const actions = loan.status === 'pending' ? `
+                    <button class="action-btn btn-approve" onclick="updateStatus('${loan.id}', 'approved')">
+                        <i class="fas fa-check"></i> Aprovar
+                    </button>
+                    <button class="action-btn btn-reject" onclick="updateStatus('${loan.id}', 'rejected')">
+                        <i class="fas fa-times"></i> Rejeitar
+                    </button>
+                ` : '-';
+
+                return `
+                    <tr>
+                        <td><code>${loan.id.substring(0, 8)}...</code></td>
+                        <td><strong>${loan.customerName || loan.phoneNumber}</strong></td>
+                        <td>${loan.phoneNumber}</td>
+                        <td><strong>${formatMoney(loan.amount)}</strong></td>
+                        <td>${loan.term}</td>
+                        <td>${loan.interest}%</td>
+                        <td>${loan.reason || '-'}</td>
+                        <td>${loan.bank || '-'}</td>
+                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td><span class="score-badge ${scoreClass}">${scoreText}</span></td>
+                        <td><small>${dateStr}</small></td>
+                        <td>${actions}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function updateStatus(loanId, newStatus) {
+            try {
+                const response = await fetch(`/api/loans/${loanId}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if (response.ok) {
+                    console.log(`✓ Status atualizado: ${loanId} -> ${newStatus}`);
+                    await loadLoans();
+                } else {
+                    alert('Erro ao atualizar status');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao atualizar status');
+            }
+        }
+
+        function formatMoney(value) {
+            return new Intl.NumberFormat('pt-MZ', {
+                style: 'currency',
+                currency: 'MZN',
+                minimumFractionDigits: 0
+            }).format(value || 0);
+        }
+
+        function filterLoans() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            const filtered = allLoans.filter(loan => {
+                const matchesSearch = !searchTerm || 
+                    (loan.customerName && loan.customerName.toLowerCase().includes(searchTerm)) ||
+                    loan.phoneNumber.includes(searchTerm) ||
+                    loan.id.toLowerCase().includes(searchTerm);
+
+                const matchesStatus = !statusFilter || loan.status === statusFilter;
+
+                return matchesSearch && matchesStatus;
+            });
+
+            renderLoans(filtered);
+        }
+
+        document.getElementById('searchInput').addEventListener('input', filterLoans);
+        document.getElementById('statusFilter').addEventListener('change', filterLoans);
+
+        // Carregar empréstimos ao iniciar
+        loadLoans();
+
+        // Atualizar a cada 10 segundos
+        setInterval(loadLoans, 10000);
+
+        async function resetLoans() {
+            if (!confirm('Tem a certeza que deseja apagar TODOS os empréstimos? Esta ação não pode ser desfeita.')) {
+                return;
+            }
+            try {
+                const res = await fetch('/api/loans/reset-all', { method: 'POST' });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.error || 'Falha ao resetar empréstimos');
+                    return;
+                }
+                const data = await res.json();
+                alert(`Empréstimos apagados: ${data.deleted}`);
+                await loadLoans();
+            } catch (e) {
+                console.error('Erro no reset:', e);
+                alert('Erro ao resetar dados de empréstimos');
+            }
+        }
+    </script>
+</body>
+</html>
