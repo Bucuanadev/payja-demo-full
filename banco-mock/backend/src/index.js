@@ -15,9 +15,11 @@ const emprestimosRoutes = require('./routes/emprestimos');
 const cedsifRoutes = require('./routes/cedsif');
 const syncStatusRoutes = require('./routes/sync-status');
 const payjaLoansRoutes = require('./routes/payja-loans');
+const payjaFeedbackRoutes = require('./routes/payja-feedback');
+const payjaDecisionsRoutes = require('./routes/payja-decisions');
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 4500;
 
 // Middlewares
 app.use(cors());
@@ -50,6 +52,8 @@ app.use('/api/health', healthRoutes);
 app.use('/api/emprestimos', emprestimosRoutes);
 app.use('/api/cedsif', cedsifRoutes);
 app.use('/api/payja-loans', payjaLoansRoutes);
+app.use('/api/payja-feedback', payjaFeedbackRoutes);
+app.use('/api', payjaDecisionsRoutes);
 app.use('/api/sync', syncStatusRoutes);
 
 // Error handler
@@ -65,9 +69,9 @@ app.use((err, req, res, next) => {
 db.init();
 
 // Iniciar servidor
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`\n🏦 ${process.env.BANCO_NOME} - Sistema Mock`);
-  console.log(`📡 Servidor rodando em http://155.138.227.26:${PORT}`);
+  console.log(`📡 Servidor rodando em http://104.207.142.188:${PORT}`);
   console.log(`🔑 API Key: ${process.env.API_KEY}`);
   console.log(`\n✅ Pronto para receber requisições!\n`);
 });

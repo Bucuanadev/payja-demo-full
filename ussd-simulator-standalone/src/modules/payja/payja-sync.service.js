@@ -60,7 +60,7 @@ import axios from 'axios';
 import { randomUUID } from 'crypto';
 
 export class PayjaSyncService {
-  constructor(db, baseUrl = process.env.PAYJA_API_URL || 'http://155.138.227.26:3000') {
+  constructor(db, baseUrl = process.env.PAYJA_API_URL || 'http://104.207.142.188:3000') {
     this.db = db;
     this.baseUrl = baseUrl;
     this.apiKey = process.env.PAYJA_API_KEY;

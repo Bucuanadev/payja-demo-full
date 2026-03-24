@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 export class PayjaApiService {
-  constructor(baseUrl = process.env.PAYJA_API_URL || 'http://155.138.227.26:3000') {
+  constructor(baseUrl = process.env.PAYJA_API_URL || 'http://104.207.142.188:3000') {
     this.baseUrl = baseUrl;
     this.apiKey = process.env.PAYJA_API_KEY;
   }

@@ -1,7 +1,7 @@
 (async ()=>{
   try{
-    const payjaUrl = process.env.PAYJA_URL || 'http://155.138.227.26:3000/api/v1/integrations/ussd/customers';
-    const simUrl = process.env.SIM_URL || 'http://155.138.227.26:3001/api/customers';
+    const payjaUrl = process.env.PAYJA_URL || 'http://104.207.142.188:3000/api/v1/integrations/ussd/customers';
+    const simUrl = process.env.SIM_URL || 'http://104.207.142.188:3001/api/customers';
 
     const pResp = await (await fetch(payjaUrl)).json();
     const sResp = await (await fetch(simUrl)).json();

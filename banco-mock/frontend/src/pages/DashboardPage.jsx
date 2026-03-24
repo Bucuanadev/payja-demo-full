@@ -86,7 +86,7 @@ const DashboardPage = () => {
       title: 'Limite',
       dataIndex: 'limite_aprovado',
       key: 'limite',
-      render: (limite) => limite ? `${limite.toLocaleString()} MZN` : '-',
+      render: (limite) => (limite !== undefined && limite !== null) ? `${limite.toLocaleString()} MZN` : '-',
     },
     {
       title: 'Data',
@@ -106,7 +106,7 @@ const DashboardPage = () => {
       title: 'Valor',
       dataIndex: 'valor',
       key: 'valor',
-      render: (valor) => `${valor.toLocaleString()} MZN`,
+      render: (valor) => (valor !== undefined && valor !== null) ? `${valor.toLocaleString()} MZN` : '0 MZN',
     },
     {
       title: 'Emola',

@@ -73,7 +73,6 @@ export class BankAdaptersService {
           loansEndpoint: bank.loansEndpoint,
           webhookEndpoint: bank.webhookEndpoint,
         });
-
         this.adapters.set(bank.code, adapter);
         this.logger.log(`✓ ${bank.name} (${bank.code}) inicializado`);
       }
@@ -101,7 +100,6 @@ export class BankAdaptersService {
     request: BankEligibilityRequest,
   ): Promise<BankEligibilityResponse> {
     const adapter = this.getAdapter(bankCode);
-
     try {
       const eligibility = await adapter.checkEligibility({
         nuit: request.nuit,
@@ -113,7 +111,6 @@ export class BankAdaptersService {
 
       // Atualizar estatísticas
       await this.updateBankStats(bankCode, true);
-
       return eligibility;
     } catch (error) {
       await this.updateBankStats(bankCode, false);
@@ -123,11 +120,31 @@ export class BankAdaptersService {
   }
 
   /**
+   * Notificar resultado de validação ao banco (Feedback Loop)
+   */
+  async notifyValidationResult(
+    bankCode: string,
+    request: {
+      nuit: string;
+      status: 'APROVADO' | 'REJEITADO';
+      motivo?: string;
+      limite_aprovado?: number;
+    }
+  ) {
+    try {
+      const adapter = this.getAdapter(bankCode);
+      return await adapter.notifyValidationResult(request);
+    } catch (error) {
+      this.logger.error(`Erro ao notificar resultado de validação ao ${bankCode}:`, error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Solicitar desembolso
    */
   async requestDisbursement(request: LoanDisbursementRequest): Promise<LoanDisbursementResponse> {
     const adapter = this.getAdapter(request.bankCode);
-
     try {
       // Buscar dados do cliente e empréstimo
       const loan = await this.prisma.loan.findUnique({
@@ -148,76 +165,120 @@ export class BankAdaptersService {
       });
 
       await this.updateBankStats(request.bankCode, response.success);
-
-      // Registrar log de auditoria
-      await this.prisma.auditLog.create({
-        data: {
-          userId: 'SYSTEM',
-          userType: 'SYSTEM',
-          action: 'BANK_DISBURSEMENT',
-          entity: 'LOAN',
-          entityId: request.loanId,
-          changes: JSON.stringify({
-            bankCode: request.bankCode,
-            amount: request.amount,
+      
+      if (response.success) {
+        // Atualizar status do empréstimo
+        await this.prisma.loan.update({
+          where: { id: request.loanId },
+          data: {
+            status: 'DISBURSED',
+            disbursedAt: response.disbursedAt || new Date(),
             transactionId: response.transactionId,
-            success: response.success,
-          }),
-        },
-      });
-
+          },
+        });
+        // Registrar transação
+        await this.saveDisbursementTransaction(request, response);
+      }
+      
       return response;
     } catch (error) {
-      await this.updateBankStats(request.bankCode, false);
-      this.logger.error(`Erro ao solicitar desembolso:`, error);
-      throw error;
+      this.logger.error(`Erro ao solicitar desembolso do ${request.bankCode}:`, error);
+      return {
+        success: false,
+        error: error.message,
+      };
     }
   }
 
   /**
-   * Testar conexão com um banco
+   * Obter lista de bancos parceiros ativos
    */
-  async testConnection(bankCode: string) {
-    const adapter = this.getAdapter(bankCode);
-    const result = await adapter.testConnection();
+  async getActiveBanks() {
+    const banks = await this.prisma.bankPartner.findMany({
+      where: { active: true },
+    });
+    return banks.map(bank => ({
+      code: bank.code,
+      name: bank.name,
+      active: true,
+    }));
+  }
 
-    // Atualizar status do health check
-    await this.prisma.bankPartner.update({
-      where: { code: bankCode },
+  /**
+   * Sincronizar dados de funcionários públicos de um banco
+   */
+  async syncPublicEmployees(bankCode: string) {
+    const adapter = this.getAdapter(bankCode);
+    
+    try {
+      // @ts-ignore - syncEmployees pode não existir em todos os adaptadores
+      const employees = await adapter.syncEmployees();
+      
+      // Processar e salvar dados dos funcionários
+      for (const employee of employees) {
+        await this.processEmployeeData(bankCode, employee);
+      }
+      
+      return {
+        success: true,
+        count: employees.length,
+        bankCode,
+      };
+    } catch (error) {
+      this.logger.error(`Erro ao sincronizar funcionários do ${bankCode}:`, error);
+      throw new BadRequestException(
+        `Erro na sincronização: ${error.message}`,
+      );
+    }
+  }
+
+  private async saveDisbursementTransaction(
+    request: LoanDisbursementRequest,
+    response: LoanDisbursementResponse,
+  ) {
+    // Salvar registro da transação de desembolso
+    await this.prisma.auditLog.create({
       data: {
-        lastHealthCheck: new Date(),
-        lastHealthStatus: result.success ? 'ONLINE' : 'OFFLINE',
-        verified: result.success,
+        userId: 'SYSTEM',
+        userType: 'SYSTEM',
+        action: 'BANK_DISBURSEMENT',
+        entity: 'LOAN',
+        entityId: request.loanId,
+        changes: JSON.stringify({
+          bankCode: request.bankCode,
+          amount: request.amount,
+          transactionId: response.transactionId,
+        }),
       },
     });
+  }
 
-    return result;
+  private async processEmployeeData(bankCode: string, employee: any) {
+    // Criar ou atualizar dados do funcionário público
+    await this.prisma.customer.upsert({
+      where: { phoneNumber: employee.phoneNumber },
+      update: {
+        name: employee.name,
+        nuit: employee.nuit,
+        verified: true,
+      },
+      create: {
+        phoneNumber: employee.phoneNumber,
+        name: employee.name,
+        nuit: employee.nuit,
+        verified: true,
+      },
+    });
   }
 
   /**
    * Criar novo banco parceiro
    */
-  async createBank(data: {
-    code: string;
-    name: string;
-    apiUrl: string;
-    apiKey?: string;
-    description?: string;
-    contactEmail?: string;
-    contactPhone?: string;
-    healthEndpoint?: string;
-    eligibilityEndpoint?: string;
-    capacityEndpoint?: string;
-    disbursementEndpoint?: string;
-    loansEndpoint?: string;
-    webhookEndpoint?: string;
-    timeout?: number;
-    retryAttempts?: number;
-  }) {
+  async createBank(data: any) {
     try {
       const bank = await this.prisma.bankPartner.create({
         data: {
-          code: data.code.toUpperCase(),
+          code: data.code,
           name: data.name,
           apiUrl: data.apiUrl,
           apiKey: data.apiKey,
@@ -252,11 +313,8 @@ export class BankAdaptersService {
         loansEndpoint: bank.loansEndpoint,
         webhookEndpoint: bank.webhookEndpoint,
       });
-
       this.adapters.set(bank.code, adapter);
-
       this.logger.log(`✓ Banco ${bank.name} criado e configurado`);
-
       return bank;
     } catch (error) {
       if (error.code === 'P2002') {
@@ -308,14 +366,12 @@ export class BankAdaptersService {
         loansEndpoint: bank.loansEndpoint,
         webhookEndpoint: bank.webhookEndpoint,
       });
-
       this.adapters.set(bank.code, adapter);
     } else {
       this.adapters.delete(bank.code);
     }
 
     this.logger.log(`✓ Banco ${bank.name} atualizado`);
-
     return bank;
   }
 
@@ -326,11 +382,8 @@ export class BankAdaptersService {
     await this.prisma.bankPartner.delete({
       where: { code },
     });
-
     this.adapters.delete(code);
-
     this.logger.log(`✓ Banco ${code} removido`);
-
     return { success: true, message: 'Banco removido com sucesso' };
   }
 
@@ -341,7 +394,6 @@ export class BankAdaptersService {
     const banks = await this.prisma.bankPartner.findMany({
       orderBy: { name: 'asc' },
     });
-
     return banks.map(bank => ({
       id: bank.id,
       code: bank.code,
@@ -372,11 +424,9 @@ export class BankAdaptersService {
     const bank = await this.prisma.bankPartner.findUnique({
       where: { code },
     });
-
     if (!bank) {
       throw new BadRequestException('Banco não encontrado');
     }
-
     return bank;
   }
 

@@ -20,4 +20,4 @@ npm install
 ## Notas
 - Banco local SQLite fica em `data/ussd-react.db` (via Prisma).
 - Endpoints úteis: `/api/health`, `/api/customers`, `/api/ussd/...`, `/api/sms/logs`.
-- Frontend: abra `http://155.138.227.26:3001/` (smartphone) ou `http://155.138.227.26:3001/customers.html`.
+- Frontend: abra `http://104.207.142.188:3001/` (smartphone) ou `http://104.207.142.188:3001/customers.html`.

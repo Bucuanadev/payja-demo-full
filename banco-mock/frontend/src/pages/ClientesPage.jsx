@@ -12,14 +12,27 @@ import {
   Select,
   message,
   Descriptions,
+  Tabs,
+  Badge,
+  Typography,
+  Alert,
+  Tooltip,
 } from 'antd';
 import {
   UserAddOutlined,
   EyeOutlined,
   ReloadOutlined,
   EditOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  TeamOutlined,
+  DollarCircleOutlined,
+  FileSearchOutlined,
+  HourglassOutlined,
 } from '@ant-design/icons';
 import api from '../services/api';
+
+const { Title, Text } = Typography;
 
 const ClientesPage = () => {
   const [loading, setLoading] = useState(false);
@@ -31,49 +44,39 @@ const ClientesPage = () => {
   const [form] = Form.useForm();
 
   useEffect(() => {
-    loadClientes();
+    loadData();
   }, []);
 
-  const loadClientes = async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
       const response = await api.get('/clientes');
       setClientes(response.data.clientes || []);
     } catch (error) {
-      message.error('Erro ao carregar clientes');
+      message.error('Erro ao carregar dados');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleViewDetails = async (clienteId) => {
-    try {
-      const response = await api.get(`/clientes/${clienteId}`);
-      setSelectedCliente(response.data);
-      setIsModalVisible(true);
-    } catch (error) {
-      message.error('Erro ao carregar detalhes');
-    }
+  const handleViewDetails = (record) => {
+    setSelectedCliente(record);
+    setIsModalVisible(true);
   };
 
-  const handleEditCliente = async (clienteId) => {
-    try {
-      const response = await api.get(`/clientes/${clienteId}`);
-      setSelectedCliente(response.data);
-      form.setFieldsValue(response.data.cliente);
-      setIsEditModalVisible(true);
-    } catch (error) {
-      message.error('Erro ao carregar dados para edição');
-    }
+  const handleEditCliente = (record) => {
+    setSelectedCliente(record);
+    form.setFieldsValue(record);
+    setIsEditModalVisible(true);
   };
 
   const handleUpdateCliente = async (values) => {
     try {
-      await api.patch(`/clientes/${selectedCliente.cliente.id}`, values);
+      await api.patch(`/clientes/${selectedCliente.id}`, values);
       message.success('Cliente atualizado com sucesso!');
       form.resetFields();
       setIsEditModalVisible(false);
-      loadClientes();
+      loadData();
     } catch (error) {
       message.error(error.response?.data?.erro || 'Erro ao atualizar cliente');
     }
@@ -85,373 +88,189 @@ const ClientesPage = () => {
       message.success('Cliente adicionado com sucesso!');
       form.resetFields();
       setIsAddModalVisible(false);
-      loadClientes();
+      loadData();
     } catch (error) {
       message.error(error.response?.data?.erro || 'Erro ao adicionar cliente');
     }
   };
 
+  const formatCurrency = (value) => {
+    if (value === null || value === undefined) return '0 MZN';
+    return `${Number(value).toLocaleString('pt-MZ')} MZN`;
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    try {
+      return new Date(dateString).toLocaleDateString('pt-PT');
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  const getAprovadosPayja = () => clientes.filter(c => c.payja_decision === 'APPROVED' || c.payja_status === 'APROVADO');
+  const getNaoAprovadosPayja = () => clientes.filter(c => c.payja_decision === 'REJECTED' || c.payja_status === 'REJEITADO');
+  const getPendentes = () => clientes.filter(c => !c.payja_decision && !c.payja_status);
+
   const columns = [
-    {
-      title: 'NUIT',
-      dataIndex: 'nuit',
-      key: 'nuit',
-      width: 120,
-    },
-    {
-      title: 'Nome',
-      dataIndex: 'nome_completo',
-      key: 'nome',
-    },
-    {
-      title: 'Telefone',
-      dataIndex: 'telefone',
-      key: 'telefone',
-    },
-    {
-      title: 'Conta',
-      dataIndex: 'numero_conta',
-      key: 'conta',
-    },
-    {
-      title: 'Saldo',
-      dataIndex: 'saldo',
-      key: 'saldo',
-      render: (saldo) => `${saldo?.toLocaleString()} MZN`,
-    },
-    {
-      title: 'Limite',
-      dataIndex: 'limite_credito',
-      key: 'limite',
-      render: (limite) => `${limite?.toLocaleString()} MZN`,
-    },
-    {
-      title: 'Score',
-      dataIndex: 'score_credito',
-      key: 'score',
-      render: (score) => (
-        <Tag color={score >= 700 ? 'success' : score >= 600 ? 'warning' : 'error'}>
-          {score}
-        </Tag>
-      ),
+    { title: 'NUIT', dataIndex: 'nuit', key: 'nuit', width: 120 },
+    { title: 'Nome', dataIndex: 'nome_completo', key: 'nome_completo' },
+    { title: 'Telefone', dataIndex: 'telefone', key: 'telefone', width: 130 },
+    { 
+      title: 'Tipo', 
+      dataIndex: 'tipo_cliente', 
+      key: 'tipo_cliente',
+      render: (tipo) => <Tag color={tipo === 'ASSALARIADO' ? 'blue' : 'orange'}>{tipo || 'N/A'}</Tag>
     },
     {
       title: 'Status',
       dataIndex: 'status_conta',
-      key: 'status',
-      render: (status) => (
-        <Tag color={status === 'ATIVA' ? 'success' : 'default'}>
-          {status}
-        </Tag>
-      ),
+      key: 'status_conta',
+      render: (status) => <Tag color={status === 'ATIVA' ? 'green' : 'red'}>{status || 'INATIVA'}</Tag>
     },
     {
       title: 'Ações',
       key: 'actions',
+      width: 150,
       render: (_, record) => (
-        <Space size="small">
-          <Button
-            type="link"
-            icon={<EyeOutlined />}
-            onClick={() => handleViewDetails(record.id)}
-          >
-            Ver
-          </Button>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => handleEditCliente(record.id)}
-          >
-            Editar
-          </Button>
+        <Space>
+          <Tooltip title="Ver Detalhes">
+            <Button icon={<EyeOutlined />} size="small" onClick={() => handleViewDetails(record)} />
+          </Tooltip>
+          <Tooltip title="Editar">
+            <Button icon={<EditOutlined />} size="small" onClick={() => handleEditCliente(record)} />
+          </Tooltip>
         </Space>
       ),
     },
   ];
 
+  const items = [
+    {
+      key: '1',
+      label: (
+        <span>
+          <TeamOutlined /> Todos <Badge count={clientes.length} offset={[10, -5]} size="small" />
+        </span>
+      ),
+      children: (
+        <Table columns={columns} dataSource={clientes} rowKey="id" loading={loading} pagination={{ pageSize: 10 }} />
+      ),
+    },
+    {
+      key: '2',
+      label: (
+        <span>
+          <CheckCircleOutlined /> Aprovados pelo PayJA <Badge count={getAprovadosPayja().length} offset={[10, -5]} size="small" style={{ backgroundColor: '#52c41a' }} />
+        </span>
+      ),
+      children: (
+        <Table columns={columns} dataSource={getAprovadosPayja()} rowKey="id" loading={loading} pagination={{ pageSize: 10 }} />
+      ),
+    },
+    {
+      key: '3',
+      label: (
+        <span>
+          <CloseCircleOutlined /> Não Aprovados pelo PayJA <Badge count={getNaoAprovadosPayja().length} offset={[10, -5]} size="small" style={{ backgroundColor: '#ff4d4f' }} />
+        </span>
+      ),
+      children: (
+        <Table columns={columns} dataSource={getNaoAprovadosPayja()} rowKey="id" loading={loading} pagination={{ pageSize: 10 }} />
+      ),
+    },
+    {
+      key: '4',
+      label: (
+        <span>
+          <HourglassOutlined /> Pendentes <Badge count={getPendentes().length} offset={[10, -5]} size="small" style={{ backgroundColor: '#faad14' }} />
+        </span>
+      ),
+      children: (
+        <Table columns={columns} dataSource={getPendentes()} rowKey="id" loading={loading} pagination={{ pageSize: 10 }} />
+      ),
+    },
+  ];
+
   return (
-    <div>
-      <Card
-        title="Gestão de Clientes"
-        extra={
-          <Space>
-            <Button
-              type="primary"
-              icon={<UserAddOutlined />}
-              onClick={() => setIsAddModalVisible(true)}
-            >
-              Novo Cliente
-            </Button>
-            <Button icon={<ReloadOutlined />} onClick={loadClientes}>
-              Atualizar
-            </Button>
-          </Space>
+    <div style={{ padding: '24px' }}>
+      <Card 
+        title={
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Title level={4} style={{ margin: 0 }}>Gestão de Clientes</Title>
+            <Space>
+              <Button icon={<ReloadOutlined />} onClick={loadData}>Atualizar</Button>
+              <Button type="primary" icon={<UserAddOutlined />} onClick={() => setIsAddModalVisible(true)}>Novo Cliente</Button>
+            </Space>
+          </div>
         }
       >
-        <Table
-          columns={columns}
-          dataSource={clientes}
-          rowKey="id"
-          loading={loading}
-          pagination={{ pageSize: 10 }}
-          scroll={{ x: 1200 }}
-        />
+        <Tabs defaultActiveKey="1" items={items} />
       </Card>
 
-      {/* Modal de Detalhes */}
       <Modal
-        title="Detalhes do Cliente"
+        title="Dossiê do Cliente"
         open={isModalVisible}
         onCancel={() => setIsModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setIsModalVisible(false)}>
-            Fechar
-          </Button>,
-        ]}
+        footer={[<Button key="close" onClick={() => setIsModalVisible(false)}>Fechar</Button>]}
         width={800}
       >
         {selectedCliente && (
-          <Descriptions bordered column={2}>
-            <Descriptions.Item label="NUIT">{selectedCliente.cliente.nuit}</Descriptions.Item>
-            <Descriptions.Item label="BI">{selectedCliente.cliente.bi}</Descriptions.Item>
-            <Descriptions.Item label="Nome Completo" span={2}>
-              {selectedCliente.cliente.nome_completo}
+          <Descriptions bordered column={2} size="small">
+            <Descriptions.Item label="Nome Completo" span={2}>{selectedCliente.nome_completo}</Descriptions.Item>
+            <Descriptions.Item label="NUIT">{selectedCliente.nuit}</Descriptions.Item>
+            <Descriptions.Item label="BI">{selectedCliente.bi}</Descriptions.Item>
+            <Descriptions.Item label="Validade do B.I.">
+              <Text strong style={{ color: new Date(selectedCliente.bi_validade) < new Date() ? '#ff4d4f' : 'inherit' }}>
+                {formatDate(selectedCliente.bi_validade)}
+              </Text>
             </Descriptions.Item>
-            <Descriptions.Item label="Telefone">{selectedCliente.cliente.telefone}</Descriptions.Item>
-            <Descriptions.Item label="Email">{selectedCliente.cliente.email || '-'}</Descriptions.Item>
-            <Descriptions.Item label="Empregador" span={2}>
-              {selectedCliente.cliente.empregador || '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="Número da Conta" span={2}>
-              {selectedCliente.cliente.numero_conta}
-            </Descriptions.Item>
-            <Descriptions.Item label="Tipo de Conta">{selectedCliente.cliente.tipo_conta}</Descriptions.Item>
-            <Descriptions.Item label="Status">
-              <Tag color={selectedCliente.cliente.status_conta === 'ATIVA' ? 'success' : 'default'}>
-                {selectedCliente.cliente.status_conta}
+            <Descriptions.Item label="Telefone">{selectedCliente.telefone}</Descriptions.Item>
+            <Descriptions.Item label="Email">{selectedCliente.email || '-'}</Descriptions.Item>
+            <Descriptions.Item label="Conta Criada">{formatDate(selectedCliente.conta_criada_em)}</Descriptions.Item>
+            <Descriptions.Item label="Status Conta">
+              <Tag color={selectedCliente.status_conta === 'ATIVA' ? 'success' : 'error'}>
+                {selectedCliente.status_conta || 'INATIVA'}
               </Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="Saldo">
-              {selectedCliente.cliente.saldo.toLocaleString()} MZN
-            </Descriptions.Item>
-            <Descriptions.Item label="Limite de Crédito">
-              {selectedCliente.cliente.limite_credito.toLocaleString()} MZN
-            </Descriptions.Item>
-            <Descriptions.Item label="Score de Crédito">
-              {selectedCliente.cliente.score_credito}
-            </Descriptions.Item>
-            <Descriptions.Item label="Renda Mensal">
-              {selectedCliente.cliente.renda_mensal.toLocaleString()} MZN
-            </Descriptions.Item>
+            <Descriptions.Item label="Saldo">{formatCurrency(selectedCliente.saldo)}</Descriptions.Item>
+            <Descriptions.Item label="Renda Mensal">{formatCurrency(selectedCliente.renda_mensal)}</Descriptions.Item>
+            <Descriptions.Item label="Salário Domiciliado">{selectedCliente.salario_domiciliado ? 'SIM' : 'NÃO'}</Descriptions.Item>
+            <Descriptions.Item label="Status Crédito">{selectedCliente.status_credito || 'LIMPO'}</Descriptions.Item>
+            <Descriptions.Item label="Dívida Total">{formatCurrency(selectedCliente.divida_total)}</Descriptions.Item>
+            
+            {(selectedCliente.payja_status || selectedCliente.payja_decision) && (
+              <>
+                <Descriptions.Item label="Status PayJA" span={2}>
+                  <Tag color={(selectedCliente.payja_status === 'APROVADO' || selectedCliente.payja_decision === 'APPROVED') ? 'green' : 'red'}>
+                    {(selectedCliente.payja_status === 'APROVADO' || selectedCliente.payja_decision === 'APPROVED') ? 'APROVADO' : 'REJEITADO'}
+                  </Tag>
+                </Descriptions.Item>
+                {(selectedCliente.payja_status === 'APROVADO' || selectedCliente.payja_decision === 'APPROVED') ? (
+                  <Descriptions.Item label="Limite PayJA" span={2}>
+                    <Text strong style={{ color: '#52c41a' }}>{formatCurrency(selectedCliente.payja_limit || selectedCliente.payja_credit_limit)}</Text>
+                  </Descriptions.Item>
+                ) : (
+                  <Descriptions.Item label="Motivo Rejeição" span={2}>
+                    <Text type="danger">{selectedCliente.payja_rejection_reason || selectedCliente.payja_reason || 'Requisitos não atendidos'}</Text>
+                  </Descriptions.Item>
+                )}
+              </>
+            )}
           </Descriptions>
         )}
       </Modal>
 
-      {/* Modal de Editar */}
       <Modal
-        title="Editar Cliente"
-        open={isEditModalVisible}
-        onCancel={() => {
-          setIsEditModalVisible(false);
-          form.resetFields();
-        }}
-        footer={null}
-        width={700}
+        title={isEditModalVisible ? "Editar Cliente" : "Adicionar Novo Cliente"}
+        open={isAddModalVisible || isEditModalVisible}
+        onCancel={() => { setIsAddModalVisible(false); setIsEditModalVisible(false); form.resetFields(); }}
+        onOk={() => form.submit()}
       >
-        <Form form={form} layout="vertical" onFinish={handleUpdateCliente}>
-          <Form.Item
-            name="nuit"
-            label="NUIT"
-            rules={[{ required: true, message: 'NUIT obrigatório' }]}
-          >
-            <Input placeholder="100234567" maxLength={9} disabled />
-          </Form.Item>
-
-          <Form.Item
-            name="bi"
-            label="Número do BI"
-            rules={[{ required: true, message: 'BI obrigatório' }]}
-          >
-            <Input placeholder="1234567890123N" maxLength={14} disabled />
-          </Form.Item>
-
-          <Form.Item
-            name="nome_completo"
-            label="Nome Completo"
-            rules={[{ required: true, message: 'Nome obrigatório' }]}
-          >
-            <Input placeholder="João da Silva" />
-          </Form.Item>
-
-          <Form.Item
-            name="telefone"
-            label="Telefone"
-            rules={[{ required: true, message: 'Telefone obrigatório' }]}
-          >
-            <Input placeholder="258841234567" maxLength={12} />
-          </Form.Item>
-
-          <Form.Item name="email" label="Email">
-            <Input type="email" placeholder="joao@email.mz" />
-          </Form.Item>
-
-          <Form.Item
-            name="numero_conta"
-            label="Número da Conta"
-            rules={[{ required: true, message: 'Número da conta obrigatório' }]}
-          >
-            <Input placeholder="0001000000001" disabled />
-          </Form.Item>
-
-          <Form.Item name="empregador" label="Empregador">
-            <Input placeholder="Ministério da Educação" />
-          </Form.Item>
-
-          <Form.Item name="saldo" label="Saldo">
-            <InputNumber style={{ width: '100%' }} min={0} />
-          </Form.Item>
-
-          <Form.Item name="limite_credito" label="Limite de Crédito">
-            <InputNumber style={{ width: '100%' }} min={0} />
-          </Form.Item>
-
-          <Form.Item name="score_credito" label="Score de Crédito">
-            <InputNumber style={{ width: '100%' }} min={300} max={850} />
-          </Form.Item>
-
-          <Form.Item name="renda_mensal" label="Renda Mensal">
-            <InputNumber style={{ width: '100%' }} min={0} />
-          </Form.Item>
-
-          <Form.Item name="tipo_conta" label="Tipo de Conta">
-            <Select>
-              <Select.Option value="CORRENTE">Corrente</Select.Option>
-              <Select.Option value="SALARIO">Salário</Select.Option>
-              <Select.Option value="POUPANCA">Poupança</Select.Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item name="status_conta" label="Status da Conta">
-            <Select>
-              <Select.Option value="ATIVA">Ativa</Select.Option>
-              <Select.Option value="INATIVA">Inativa</Select.Option>
-              <Select.Option value="BLOQUEADA">Bloqueada</Select.Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item>
-            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-              <Button onClick={() => {
-                setIsEditModalVisible(false);
-                form.resetFields();
-              }}>
-                Cancelar
-              </Button>
-              <Button type="primary" htmlType="submit" icon={<EditOutlined />}>
-                Guardar Alterações
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* Modal de Adicionar */}
-      <Modal
-        title="Adicionar Novo Cliente"
-        open={isAddModalVisible}
-        onCancel={() => {
-          setIsAddModalVisible(false);
-          form.resetFields();
-        }}
-        footer={null}
-        width={700}
-      >
-        <Form form={form} layout="vertical" onFinish={handleAddCliente}>
-          <Form.Item
-            name="nuit"
-            label="NUIT"
-            rules={[{ required: true, message: 'NUIT obrigatório' }]}
-          >
-            <Input placeholder="100234567" maxLength={9} />
-          </Form.Item>
-
-          <Form.Item
-            name="bi"
-            label="Número do BI"
-            rules={[{ required: true, message: 'BI obrigatório' }]}
-          >
-            <Input placeholder="1234567890123N" maxLength={14} />
-          </Form.Item>
-
-          <Form.Item
-            name="nome_completo"
-            label="Nome Completo"
-            rules={[{ required: true, message: 'Nome obrigatório' }]}
-          >
-            <Input placeholder="João da Silva" />
-          </Form.Item>
-
-          <Form.Item
-            name="telefone"
-            label="Telefone"
-            rules={[{ required: true, message: 'Telefone obrigatório' }]}
-          >
-            <Input placeholder="258841234567" maxLength={12} />
-          </Form.Item>
-
-          <Form.Item name="email" label="Email">
-            <Input type="email" placeholder="joao@email.mz" />
-          </Form.Item>
-
-          <Form.Item
-            name="numero_conta"
-            label="Número da Conta"
-            rules={[{ required: true, message: 'Número da conta obrigatório' }]}
-          >
-            <Input placeholder="0001000000001" />
-          </Form.Item>
-
-          <Form.Item name="empregador" label="Empregador">
-            <Input placeholder="Ministério da Educação" />
-          </Form.Item>
-
-          <Form.Item name="saldo" label="Saldo Inicial" initialValue={0}>
-            <InputNumber style={{ width: '100%' }} min={0} />
-          </Form.Item>
-
-          <Form.Item name="limite_credito" label="Limite de Crédito" initialValue={10000}>
-            <InputNumber style={{ width: '100%' }} min={0} />
-          </Form.Item>
-
-          <Form.Item name="score_credito" label="Score de Crédito" initialValue={650}>
-            <InputNumber style={{ width: '100%' }} min={300} max={850} />
-          </Form.Item>
-
-          <Form.Item name="renda_mensal" label="Renda Mensal" initialValue={0}>
-            <InputNumber style={{ width: '100%' }} min={0} />
-          </Form.Item>
-
-          <Form.Item name="tipo_conta" label="Tipo de Conta" initialValue="CORRENTE">
-            <Select>
-              <Select.Option value="CORRENTE">Corrente</Select.Option>
-              <Select.Option value="SALARIO">Salário</Select.Option>
-              <Select.Option value="POUPANCA">Poupança</Select.Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item>
-            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-              <Button onClick={() => {
-                setIsAddModalVisible(false);
-                form.resetFields();
-              }}>
-                Cancelar
-              </Button>
-              <Button type="primary" htmlType="submit" icon={<UserAddOutlined />}>
-                Adicionar
-              </Button>
-            </Space>
-          </Form.Item>
+        <Form form={form} layout="vertical" onFinish={isEditModalVisible ? handleUpdateCliente : handleAddCliente}>
+          <Form.Item name="nome_completo" label="Nome Completo" rules={[{ required: true }]}><Input /></Form.Item>
+          <Form.Item name="telefone" label="Telefone" rules={[{ required: true }]}><Input /></Form.Item>
+          <Form.Item name="renda_mensal" label="Renda Mensal"><InputNumber style={{ width: '100%' }} /></Form.Item>
         </Form>
       </Modal>
     </div>

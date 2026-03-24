@@ -492,7 +492,7 @@
                     type="text" 
                     class="config-input" 
                     id="apiUrl" 
-                    value="http://155.138.227.26:3001"
+                    value="http://104.207.142.188:3001"
                     readonly
                 />
             </div>
@@ -540,7 +540,7 @@
 
         // Armazenamento local para simular backoffice/PayJA
         const STORAGE_KEY = 'ussdSimDataV2';
-        const API_BASE = 'http://155.138.227.26:3001/api/ussd';
+        const API_BASE = 'http://104.207.142.188:3001/api/ussd';
 
         const loadDb = () => {
             try {
@@ -588,7 +588,7 @@
 
         const persistCustomerToApi = async (payload) => {
             try {
-                const response = await fetch('http://155.138.227.26:3001/api/customers/register', {
+                const response = await fetch('http://104.207.142.188:3001/api/customers/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1275,7 +1275,7 @@
         // ==================== VANILLA JS PAINEL ====================
         async function testAPI() {
             try {
-                const res = await fetch('http://155.138.227.26:3001/api/health');
+                const res = await fetch('http://104.207.142.188:3001/api/health');
                 const data = await res.json();
                 document.getElementById('status').textContent = '🟢 Online';
                 alert('✓ API Online!\n\n' + data.service);

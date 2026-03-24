@@ -55,7 +55,7 @@ const ValidacoesPage = () => {
       dataIndex: 'limite_aprovado',
       key: 'limite',
       width: 150,
-      render: (limite) => limite ? `${limite.toLocaleString()} MZN` : '-',
+      render: (limite) => (limite !== undefined && limite !== null) ? `${limite.toLocaleString()} MZN` : '-',
     },
     {
       title: 'Motivo Rejeição',
@@ -137,7 +137,7 @@ const ValidacoesPage = () => {
               </Descriptions.Item>
               <Descriptions.Item label="Limite Aprovado" span={2}>
                 {selectedValidacao.limite_aprovado 
-                  ? `${selectedValidacao.limite_aprovado.toLocaleString()} MZN` 
+                  ? `${selectedValidacao.limite_aprovado !== undefined && selectedValidacao.limite_aprovado !== null ? selectedValidacao.limite_aprovado.toLocaleString() : '0'} MZN` 
                   : '-'}
               </Descriptions.Item>
               {selectedValidacao.motivo_rejeicao && (

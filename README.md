@@ -22,11 +22,11 @@ O ecossistema PayJA automatiza todo o ciclo de vida do crédito:
 
 ## 🌐 Acesso Rápido (Demo)
 
-- **Painel Administrativo**: [http://155.138.227.26:5173](http://155.138.227.26:5173)
+- **Painel Administrativo**: [http://104.207.142.188:5173](http://104.207.142.188:5173)
   - *Credenciais: admin@payja.co.mz / admin123*
-- **Simulador USSD**: [http://155.138.227.26:3001](http://155.138.227.26:3001)
-- **Banco Mock (Admin)**: [http://155.138.227.26:4100](http://155.138.227.26:4100)
-- **API Documentation**: [http://155.138.227.26:3000/api/v1](http://155.138.227.26:3000/api/v1)
+- **Simulador USSD**: [http://104.207.142.188:3001](http://104.207.142.188:3001)
+- **Banco Mock (Admin)**: [http://104.207.142.188:4100](http://104.207.142.188:4100)
+- **API Documentation**: [http://104.207.142.188:3000/api/v1](http://104.207.142.188:3000/api/v1)
 
 ---
 **Desenvolvido por Bucuanadev**

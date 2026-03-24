@@ -144,7 +144,7 @@ class PayjaSync {
     }
     try {
       console.log('[PayjaSync] Buscando clientes do PayJA...');
-      const response = await fetch('http://155.138.227.26:3000/api/v1/integrations/ussd/customers');
+      const response = await fetch('http://104.207.142.188:3000/api/v1/integrations/ussd/customers');
       const apiData = await response.json();
       const payjaCustomers = Array.isArray(apiData.data) ? apiData.data : [];
       console.log(`[PayjaSync] ✓ Busquei ${payjaCustomers.length} clientes do PayJA`);

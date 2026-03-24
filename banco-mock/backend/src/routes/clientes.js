@@ -5,7 +5,7 @@ const axios = require('axios');
 
 // Função auxiliar para disparar webhook de sincronização
 async function notifyPayja(event, data) {
-  const payjaUrl = process.env.PAYJA_API_URL || 'http://localhost:3000/api/v1';
+  const payjaUrl = process.env.PAYJA_API_URL || 'http://104.207.142.188:3000/api/v1';
   try {
     await axios.post(`${payjaUrl}/webhooks/bank-sync`, {
       event,

@@ -23,6 +23,7 @@ export class UniversalBankAdapter {
       disbursement: string;
       loans: string;
       webhook: string;
+      validationResult: string;
     };
   };
 
@@ -40,6 +41,7 @@ export class UniversalBankAdapter {
         disbursement: '/api/desembolso/executar',
         loans: '/api/emprestimos/consultar',
         webhook: '/api/webhooks/pagamento',
+        validationResult: '/api/validacao/resultado-payja',
       },
     };
   }
@@ -60,6 +62,7 @@ export class UniversalBankAdapter {
     disbursementEndpoint?: string;
     loansEndpoint?: string;
     webhookEndpoint?: string;
+    validationResultEndpoint?: string;
   }) {
     this.config.code = bankConfig.code;
     this.config.name = bankConfig.name;
@@ -75,6 +78,7 @@ export class UniversalBankAdapter {
     if (bankConfig.disbursementEndpoint) this.config.endpoints.disbursement = bankConfig.disbursementEndpoint;
     if (bankConfig.loansEndpoint) this.config.endpoints.loans = bankConfig.loansEndpoint;
     if (bankConfig.webhookEndpoint) this.config.endpoints.webhook = bankConfig.webhookEndpoint;
+    if (bankConfig.validationResultEndpoint) this.config.endpoints.validationResult = bankConfig.validationResultEndpoint;
 
     // Criar cliente HTTP
     this.client = axios.create({
@@ -98,11 +102,9 @@ export class UniversalBankAdapter {
         throw new Error('Banco não configurado. Configure primeiro usando configure()');
       }
 
-      this.logger.log(`Testando conexão com ${this.config.name}...`);
-
-      const response = await this.client.get(this.config.endpoints.health);
-
-      this.logger.log(`✓ Conexão com ${this.config.name} estabelecida`);
+      const response = await this.retry(async () => {
+        return await this.client.get(this.config.endpoints.health);
+      });
 
       return {
         success: true,
@@ -110,10 +112,10 @@ export class UniversalBankAdapter {
         data: response.data,
       };
     } catch (error) {
-      this.logger.error(`✗ Erro ao conectar com ${this.config.name}:`, error.message);
+      this.logger.error(`Erro ao testar conexão com ${this.config.name}:`, error.message);
       return {
         success: false,
-        message: error.response?.data?.message || error.message,
+        message: `Erro: ${error.message}`,
       };
     }
   }
@@ -122,7 +124,7 @@ export class UniversalBankAdapter {
    * Verificar elegibilidade do cliente
    */
   async checkEligibility(request: {
-    nuit?: string;
+    nuit: string;
     nome?: string;
     telefone?: string;
     bi?: string;
@@ -130,21 +132,11 @@ export class UniversalBankAdapter {
   }) {
     try {
       this.logger.log(`Verificando elegibilidade no ${this.config.name} para NUIT: ${request.nuit}`);
-
       const response = await this.retry(async () => {
         return await this.client.post(this.config.endpoints.eligibility, request);
       });
 
       const data = response.data;
-
-      // Normalizar resposta para formato padrão PayJA
-      if (!data.elegivel && !data.eligible) {
-        return {
-          eligible: false,
-          reason: data.motivo || data.reason || 'Cliente não elegível',
-          code: data.codigo || data.code,
-        };
-      }
 
       return {
         eligible: data.elegivel || data.eligible || true,
@@ -168,16 +160,36 @@ export class UniversalBankAdapter {
   }
 
   /**
+   * Notificar resultado de validação (Feedback Loop)
+   */
+  async notifyValidationResult(request: {
+    nuit: string;
+    status: 'APROVADO' | 'REJEITADO';
+    motivo?: string;
+    limite_aprovado?: number;
+  }) {
+    try {
+      this.logger.log(`Notificando resultado de validação ao ${this.config.name}: NUIT=${request.nuit}, Status=${request.status}`);
+      const response = await this.retry(async () => {
+        return await this.client.post(this.config.endpoints.validationResult, request);
+      });
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Erro ao notificar resultado de validação ao ${this.config.name}:`, error.message);
+      // Não lançar erro para não quebrar o fluxo principal do PayJA
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Consultar capacidade financeira
    */
   async checkCapacity(request: { nuit: string; telefone?: string }) {
     try {
       this.logger.log(`Consultando capacidade financeira no ${this.config.name}: ${request.nuit}`);
-
       const response = await this.retry(async () => {
         return await this.client.post(this.config.endpoints.capacity, request);
       });
-
       return response.data;
     } catch (error) {
       this.logger.error(`Erro ao consultar capacidade ${this.config.name}:`, error.message);
@@ -197,7 +209,6 @@ export class UniversalBankAdapter {
   }) {
     try {
       this.logger.log(`Solicitando desembolso no ${this.config.name}: ${request.referencia_payja}`);
-
       const response = await this.retry(async () => {
         return await this.client.post(this.config.endpoints.disbursement, {
           nuit: request.nuit,
@@ -241,7 +252,6 @@ export class UniversalBankAdapter {
       const response = await this.retry(async () => {
         return await this.client.post(this.config.endpoints.loans, request);
       });
-
       return response.data;
     } catch (error) {
       this.logger.error(`Erro ao consultar empréstimos ${this.config.name}:`, error.message);
@@ -261,11 +271,9 @@ export class UniversalBankAdapter {
   }) {
     try {
       this.logger.log(`Notificando pagamento ao ${this.config.name}: ${request.referencia}`);
-
       const response = await this.retry(async () => {
         return await this.client.post(this.config.endpoints.webhook, request);
       });
-
       return response.data;
     } catch (error) {
       this.logger.error(`Erro ao notificar pagamento ${this.config.name}:`, error.message);

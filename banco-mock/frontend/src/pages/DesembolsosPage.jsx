@@ -149,7 +149,7 @@ const DesembolsosPage = () => {
       width: 130,
       render: (valor) => (
         <strong style={{ color: '#1890ff' }}>
-          {valor.toLocaleString()} MZN
+          {(valor !== undefined && valor !== null) ? valor.toLocaleString() : '0'} MZN
         </strong>
       ),
     },
@@ -213,7 +213,7 @@ const DesembolsosPage = () => {
           </Table.Summary.Cell>
           <Table.Summary.Cell index={2}>
             <strong style={{ color: '#1890ff' }}>
-              {total.toLocaleString()} MZN
+              {(total !== undefined && total !== null) ? total.toLocaleString() : '0'} MZN
             </strong>
           </Table.Summary.Cell>
           <Table.Summary.Cell index={3} colSpan={2}>

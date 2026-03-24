@@ -12,7 +12,7 @@ export class GhwAdapter {
   private apiKey: string;
 
   constructor() {
-    this.apiUrl = process.env.GHW_API_URL || 'http://155.138.227.26:4500';
+    this.apiUrl = process.env.GHW_API_URL || 'http://104.207.142.188:4500';
     this.apiKey = process.env.GHW_API_KEY || 'banco-ghw-api-key-2025';
   }
 
@@ -34,7 +34,6 @@ export class GhwAdapter {
         headers: { 'x-api-key': this.apiKey },
         timeout: 5000,
       });
-
       return {
         success: true,
         message: 'Conexão estabelecida com sucesso',
@@ -61,7 +60,6 @@ export class GhwAdapter {
   }) {
     try {
       this.logger.log(`Verificando elegibilidade no Banco GHW para NUIT: ${request.nuit}`);
-
       const response = await axios.post(
         `${this.apiUrl}/api/validacao/verificar`,
         {
@@ -111,12 +109,41 @@ export class GhwAdapter {
   }
 
   /**
+   * Notificar resultado de validação (Feedback Loop)
+   */
+  async notifyValidationResult(request: {
+    nuit: string;
+    status: 'APROVADO' | 'REJEITADO';
+    motivo?: string;
+    limite_aprovado?: number;
+  }) {
+    try {
+      this.logger.log(`Notificando resultado de validação ao Banco GHW: NUIT=${request.nuit}, Status=${request.status}`);
+      const response = await axios.post(
+        `${this.apiUrl}/api/validacao/resultado-payja`,
+        request,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': this.apiKey,
+          },
+          timeout: 5000,
+        },
+      );
+      return response.data;
+    } catch (error) {
+      this.logger.error('Erro ao notificar resultado de validação ao Banco GHW:', error.message);
+      // Não lançar erro para não quebrar o fluxo principal do PayJA
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Consultar capacidade financeira
    */
   async checkCapacity(request: { nuit: string; telefone?: string }) {
     try {
       this.logger.log(`Consultando capacidade financeira no Banco GHW: ${request.nuit}`);
-
       const response = await axios.post(
         `${this.apiUrl}/api/capacidade/consultar`,
         {
@@ -131,7 +158,6 @@ export class GhwAdapter {
           timeout: 10000,
         },
       );
-
       return response.data;
     } catch (error) {
       this.logger.error('Erro ao consultar capacidade Banco GHW:', error.message);
@@ -151,7 +177,6 @@ export class GhwAdapter {
   }) {
     try {
       this.logger.log(`Solicitando desembolso no Banco GHW: ${request.referencia_payja}`);
-
       const response = await axios.post(
         `${this.apiUrl}/api/desembolso/executar`,
         {
@@ -211,7 +236,6 @@ export class GhwAdapter {
           timeout: 10000,
         },
       );
-
       return response.data;
     } catch (error) {
       this.logger.error('Erro ao consultar empréstimos Banco GHW:', error.message);
@@ -231,7 +255,6 @@ export class GhwAdapter {
   }) {
     try {
       this.logger.log(`Notificando pagamento ao Banco GHW: ${request.referencia}`);
-
       const response = await axios.post(
         `${this.apiUrl}/api/webhooks/pagamento`,
         request,
@@ -243,7 +266,6 @@ export class GhwAdapter {
           timeout: 10000,
         },
       );
-
       return response.data;
     } catch (error) {
       this.logger.error('Erro ao notificar pagamento Banco GHW:', error.message);

@@ -265,12 +265,12 @@ GET /api/ussd/sessions
 
 ```bash
 # 1. Iniciar
-curl -X POST http://155.138.227.26:3001/api/ussd/session \
+curl -X POST http://104.207.142.188:3001/api/ussd/session \
   -H "Content-Type: application/json" \
   -d '{"phoneNumber":"868801234"}'
 
 # 2. Continuar (substituir SESSION_ID)
-curl -X POST http://155.138.227.26:3001/api/ussd/continue \
+curl -X POST http://104.207.142.188:3001/api/ussd/continue \
   -H "Content-Type: application/json" \
   -d '{"sessionId":"SESSION_ID","userInput":"João"}'
 ```

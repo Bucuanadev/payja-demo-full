@@ -50,7 +50,7 @@ export function createIntegrationRouter(db) {
       );
 
       res.json({
-        payjaApiUrl: apiUrl?.value || 'http://155.138.227.26:3000',
+        payjaApiUrl: apiUrl?.value || 'http://104.207.142.188:3000',
         hasApiKey: !!apiKey?.value,
       });
     } catch (error) {
@@ -68,7 +68,7 @@ export function createIntegrationRouter(db) {
 
       const axios = (await import('axios')).default;
       const response = await axios.get(
-        `${apiUrl?.value || 'http://155.138.227.26:3000'}/api/v1/health`,
+        `${apiUrl?.value || 'http://104.207.142.188:3000'}/api/v1/health`,
         { timeout: 5000 }
       );
 

@@ -21,88 +21,71 @@ model Admin {
 }
 
 model Customer {
-  id             String          @id @default(uuid())
-  phoneNumber    String          @unique
-  name           String?
-  nuit           String?         @unique
-  dateOfBirth    DateTime?
-  address        String?
-  district       String?
-  province       String?
-  biNumber       String?
-  biIssueDate    String?
-  biExpiryDate   String?
-  profession     String?
-  salaryBank     String?
-  salary         Float?
-  channel        String          @default("APP")
-  verified       Boolean         @default(false)
-  blocked        Boolean         @default(false)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  lastAccess     DateTime?
-  creditLimit    Float?
-  email          String?
-  creditScore    Int?
-  accountNumber  String?
-  accountType    String?
-  loans          Loan[]
-  scoringResults ScoringResult[]
+  id              String          @id @default(uuid())
+  phoneNumber     String          @unique
+  name            String?
+  nuit            String?         @unique
+  dateOfBirth     DateTime?
+  address         String?
+  district        String?
+  province        String?
+  biNumber        String?
+  biIssueDate     String?
+  biExpiryDate    String?
+  profession      String?
+  salaryBank      String?
+  salary          Float?
+  channel         String          @default("APP")
+  verified        Boolean         @default(false)
+  blocked         Boolean         @default(false)
+  rejectionReason String?
+  status          String          @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  lastAccess      DateTime?
+  creditLimit     Float?
+  email           String?
+  creditScore     Int?
+  bankGhW_validadeBI  DateTime?
+  bankGhW_saldo       Float?
+  bankGhW_dividaTotal  Float?
+  bankGhW_incumprimento String?
+  accountNumber   String?
+  accountType     String?
+  loans           Loan[]
+  scoringResults  ScoringResult[]
 
   @@map("customers")
 }
 
 model UssdSession {
-  id           String    @id @default(uuid())
-  sessionId    String    @unique
-  phoneNumber  String
-  currentStep  String    @default("MAIN")
-  state        String?   @default("{}")
-  isActive     Boolean   @default(true)
-  otpCode      String?
-  otpExpiresAt DateTime?
-  otpAttempts  Int       @default(0)
-  customerId   String?
-  startedAt    DateTime  @default(now())
-  lastActivity DateTime  @default(now())
-  endedAt      DateTime?
+  id          String    @id @default(uuid())
+  sessionId   String    @unique
+  phoneNumber String
+  currentStep String    @default("MAIN")
+  state       String?   @default("{}")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  @@index([phoneNumber])
-  @@index([sessionId])
-  @@index([otpCode])
   @@map("ussd_sessions")
 }
 
 model Loan {
-  id                  String         @id @default(uuid())
-  customerId          String
-  amount              Float
-  interestRate        Float          @default(15.0)
-  termMonths          Int
-  purpose             String?
-  bankCode            String?
-  bankName            String?
-  channel             String         @default("APP")
-  totalAmount         Float
-  monthlyPayment      Float
-  emolaCommission     Float?         @default(0.03)
-  payjaCommission     Float?         @default(0.03)
-  bankCommission      Float?         @default(0.08)
-  totalCommission     Float?
-  commissionBreakdown String?        @default("{}")
-  status              String         @default("PENDING")
-  approvedBy          String?
-  approvedAt          DateTime?
-  rejectedReason      String?
-  scoringId           String?        @unique
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
-  disbursedAt         DateTime?
-  dueDate             DateTime?
-  scoring             ScoringResult? @relation(fields: [scoringId], references: [id])
-  customer            Customer       @relation(fields: [customerId], references: [id])
-  payments            Payment[]
-  transactions        Transaction[]
+  id            String         @id @default(uuid())
+  customerId    String
+  amount        Float
+  term          Int
+  interestRate  Float
+  status        String         @default("PENDING")
+  scoringId     String?        @unique
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  disbursedAt   DateTime?
+  dueDate       DateTime?
+  scoring       ScoringResult? @relation(fields: [scoringId], references: [id])
+  customer      Customer       @relation(fields: [customerId], references: [id])
+  payments      Payment[]
+  transactions  Transaction[]
 
   @@map("loans")
 }
