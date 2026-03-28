@@ -95,6 +95,10 @@ export function createUssdRouter(db) {
           const { eligible, creditLimit } = computeLocalCreditLimit(localCustomer);
           const session = new UssdSession(phoneNumber, 'unified');
           session.isNewCustomer = false;
+          if (customerCheck.customer.status === "REJECTED") {
+            session.currentStep = UssdSession.STEPS.UNIFIED.REJECTED;
+            session.setData("rejectionReason", customerCheck.customer.rejectionReason || "Nao cumpre os requisitos minimos.");
+          } else {
           session.currentStep = UssdSession.STEPS.UNIFIED.CHECK_CUSTOMER;
           session.setData('name', localCustomer.name || '');
           session.setData('creditLimit', creditLimit || 0);
@@ -155,6 +159,10 @@ export function createUssdRouter(db) {
 
       // Criar sessao unificada
       const session = new UssdSession(phoneNumber, 'unified');
+          if (customerCheck.customer.status === "REJECTED") {
+            session.currentStep = UssdSession.STEPS.UNIFIED.REJECTED;
+            session.setData("rejectionReason", customerCheck.customer.rejectionReason || "Nao cumpre os requisitos minimos.");
+          } else {
       session.currentStep = UssdSession.STEPS.UNIFIED.CHECK_CUSTOMER;
       session.setData('name', customerCheck.customer?.name || '');
       session.setData('creditLimit', customerCheck.customer?.creditLimit || 0);
