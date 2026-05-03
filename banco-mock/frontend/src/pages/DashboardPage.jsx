@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Table, Tag, Spin, message } from 'antd';
+import { Card, Row, Col, Statistic, Table, Tag, Spin, message, Typography } from 'antd';
 import {
   UserOutlined,
   DollarOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   RiseOutlined,
+  CloseCircleOutlined,
 } from '@ant-design/icons';
 import api from '../services/api';
+
+const { Title } = Typography;
 
 const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
@@ -34,33 +37,37 @@ const DashboardPage = () => {
       const validacoes = validacoesRes.data.validacoes || [];
       const desembolsos = desembolsosRes.data.desembolsos || [];
 
+      const aprovados = clientes.filter(c => c.payja_decision === 'APPROVED' || c.payja_status === 'APROVADO').length;
+      const rejeitados = clientes.filter(c => c.payja_decision === 'REJECTED' || c.payja_status === 'REJEITADO').length;
+
       setStats({
         total_clientes: clientes.length,
         clientes_ativos: clientes.filter(c => c.status_conta === 'ATIVA').length,
+        aprovados_payja: aprovados,
+        rejeitados_payja: rejeitados,
         validacoes_hoje: validacoes.filter(v => 
           new Date(v.criado_em).toDateString() === new Date().toDateString()
         ).length,
         desembolsos_sucesso: desembolsos.filter(d => d.status === 'CONCLUIDO').length,
         valor_total: desembolsos
           .filter(d => d.status === 'CONCLUIDO')
-          .reduce((sum, d) => sum + d.valor, 0),
-        score_medio: Math.round(
-          clientes.reduce((sum, c) => sum + c.score_credito, 0) / clientes.length
-        ),
+          .reduce((sum, d) => sum + (d.valor || 0), 0),
+        score_medio: clientes.length > 0 ? Math.round(
+          clientes.reduce((sum, c) => sum + (c.score_credito || 0), 0) / clientes.length
+        ) : 0,
       });
 
       setRecentValidacoes(validacoes.slice(0, 5));
       setRecentDesembolsos(desembolsos.slice(0, 5));
-
-      const syncData = syncRes.data?.data || {};
+      
+      const syncData = syncRes.data?.data || syncRes.data || {};
       setSyncStatus({
         last_pull: syncData.last_payja_pull_at,
         last_loans: syncData.last_payja_loans_sync_at,
       });
-
     } catch (error) {
-      message.error('Erro ao carregar dados');
-      console.error(error);
+      console.error('Erro ao carregar dados do dashboard:', error);
+      message.error('Falha ao carregar estatísticas');
     } finally {
       setLoading(false);
     }
@@ -77,7 +84,7 @@ const DashboardPage = () => {
       dataIndex: 'status',
       key: 'status',
       render: (status) => (
-        <Tag color={status === 'APROVADO' ? 'success' : 'error'}>
+        <Tag color={status === 'APROVADO' || status === 'APPROVED' ? 'success' : 'error'}>
           {status}
         </Tag>
       ),
@@ -86,7 +93,7 @@ const DashboardPage = () => {
       title: 'Limite',
       dataIndex: 'limite_aprovado',
       key: 'limite',
-      render: (limite) => (limite !== undefined && limite !== null) ? `${limite.toLocaleString()} MZN` : '-',
+      render: (limite) => (limite !== undefined && limite !== null) ? Number(limite).toLocaleString() + ' MZN' : '-',
     },
     {
       title: 'Data',
@@ -106,12 +113,7 @@ const DashboardPage = () => {
       title: 'Valor',
       dataIndex: 'valor',
       key: 'valor',
-      render: (valor) => (valor !== undefined && valor !== null) ? `${valor.toLocaleString()} MZN` : '0 MZN',
-    },
-    {
-      title: 'Emola',
-      dataIndex: 'numero_emola',
-      key: 'emola',
+      render: (valor) => (valor !== undefined && valor !== null) ? Number(valor).toLocaleString() + ' MZN' : '0 MZN',
     },
     {
       title: 'Status',
@@ -124,7 +126,7 @@ const DashboardPage = () => {
           PENDENTE: 'warning',
           ERRO: 'error',
         };
-        return <Tag color={colors[status]}>{status}</Tag>;
+        return <Tag color={colors[status] || 'default'}>{status}</Tag>;
       },
     },
   ];
@@ -132,95 +134,52 @@ const DashboardPage = () => {
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: 50 }}>
-        <Spin size="large" />
+        <Spin size='large' tip='Carregando Dashboard...' />
       </div>
     );
   }
 
   return (
-    <div>
+    <div style={{ padding: '24px' }}>
+      <Title level={3} style={{ marginBottom: 24 }}>Dashboard Financeiro</Title>
+      
       <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} md={8}>
+        <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
-              title="Último Pull do PayJA (Clientes)"
-              value={syncStatus.last_pull ? new Date(syncStatus.last_pull).toLocaleString('pt-MZ') : '—'}
-              prefix={<ClockCircleOutlined />}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8}>
-          <Card>
-            <Statistic
-              title="Última Sincronização de Empréstimos"
-              value={syncStatus.last_loans ? new Date(syncStatus.last_loans).toLocaleString('pt-MZ') : '—'}
-              prefix={<ClockCircleOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={8}>
-          <Card>
-            <Statistic
-              title="Total de Clientes"
+              title='Total de Clientes'
               value={stats?.total_clientes || 0}
               prefix={<UserOutlined />}
-              valueStyle={{ color: '#3f8600' }}
             />
           </Card>
         </Col>
-
-        <Col xs={24} sm={12} md={8}>
+        <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
-              title="Clientes Ativos"
-              value={stats?.clientes_ativos || 0}
+              title='Aprovados PayJA'
+              value={stats?.aprovados_payja || 0}
               prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8}>
-          <Card>
-            <Statistic
-              title="Score Médio"
-              value={stats?.score_medio || 0}
-              prefix={<RiseOutlined />}
-              suffix="/ 850"
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8}>
-          <Card>
-            <Statistic
-              title="Validações Hoje"
-              value={stats?.validacoes_hoje || 0}
-              prefix={<ClockCircleOutlined />}
-              valueStyle={{ color: '#faad14' }}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={8}>
-          <Card>
-            <Statistic
-              title="Desembolsos Concluídos"
-              value={stats?.desembolsos_sucesso || 0}
-              prefix={<DollarOutlined />}
               valueStyle={{ color: '#52c41a' }}
             />
           </Card>
         </Col>
-
-        <Col xs={24} sm={12} md={8}>
+        <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
-              title="Valor Total Desembolsado"
+              title='Rejeitados PayJA'
+              value={stats?.rejeitados_payja || 0}
+              prefix={<CloseCircleOutlined />}
+              valueStyle={{ color: '#ff4d4f' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card>
+            <Statistic
+              title='Valor Desembolsado'
               value={stats?.valor_total || 0}
               prefix={<DollarOutlined />}
-              suffix="MZN"
+              suffix='MZN'
               precision={0}
             />
           </Card>
@@ -228,26 +187,59 @@ const DashboardPage = () => {
       </Row>
 
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-        <Col xs={24} lg={12}>
-          <Card title="Validações Recentes" size="small">
-            <Table
-              dataSource={recentValidacoes}
-              columns={validacoesColumns}
-              rowKey="id"
-              pagination={false}
-              size="small"
+        <Col xs={24} sm={12} md={8}>
+          <Card size='small'>
+            <Statistic
+              title='Último Pull PayJA'
+              value={syncStatus.last_pull ? new Date(syncStatus.last_pull).toLocaleString('pt-MZ') : '—'}
+              valueStyle={{ fontSize: 14 }}
+              prefix={<ClockCircleOutlined />}
             />
           </Card>
         </Col>
+        <Col xs={24} sm={12} md={8}>
+          <Card size='small'>
+            <Statistic
+              title='Score Médio'
+              value={stats?.score_medio || 0}
+              valueStyle={{ fontSize: 14 }}
+              prefix={<RiseOutlined />}
+              suffix='/ 850'
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={8}>
+          <Card size='small'>
+            <Statistic
+              title='Validações Hoje'
+              value={stats?.validacoes_hoje || 0}
+              valueStyle={{ fontSize: 14 }}
+              prefix={<ClockCircleOutlined />}
+            />
+          </Card>
+        </Col>
+      </Row>
 
+      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
         <Col xs={24} lg={12}>
-          <Card title="Desembolsos Recentes" size="small">
+          <Card title='Validações Recentes' size='small'>
+            <Table
+              dataSource={recentValidacoes}
+              columns={validacoesColumns}
+              rowKey='id'
+              pagination={false}
+              size='small'
+            />
+          </Card>
+        </Col>
+        <Col xs={24} lg={12}>
+          <Card title='Desembolsos Recentes' size='small'>
             <Table
               dataSource={recentDesembolsos}
               columns={desembolsosColumns}
-              rowKey="id"
+              rowKey='id'
               pagination={false}
-              size="small"
+              size='small'
             />
           </Card>
         </Col>

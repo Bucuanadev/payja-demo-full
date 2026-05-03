@@ -71,7 +71,7 @@ db.init();
 // Iniciar servidor
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`\n🏦 ${process.env.BANCO_NOME} - Sistema Mock`);
-  console.log(`📡 Servidor rodando em http://104.207.142.188:${PORT}`);
+  console.log(`📡 Servidor rodando em http://216.128.152.177:${PORT}`);
   console.log(`🔑 API Key: ${process.env.API_KEY}`);
   console.log(`\n✅ Pronto para receber requisições!\n`);
 });

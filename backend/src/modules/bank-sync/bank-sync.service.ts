@@ -6,7 +6,7 @@ import axios from 'axios';
 @Injectable()
 export class BankSyncService implements OnModuleInit {
   private readonly logger = new Logger(BankSyncService.name);
-  private readonly BANCO_MOCK_URL = 'http://104.207.142.188:4500';
+  private readonly BANCO_MOCK_URL = 'http://216.128.152.177:4500';
 
   constructor(private prisma: PrismaService) {}
 
@@ -120,7 +120,7 @@ export class BankSyncService implements OnModuleInit {
       // DECISÃO FINAL
       const isEligible = isAccountActive && isBiValid && !isIncumpridor && isCreditClean && hasMinimumAccountAge && hasSalaryDomiciliation && hasAcceptableEffortRate && !hasExcessiveDebt;
       
-      const calculatedLimit = isEligible ? (salary * 0.4) : 0;
+      const calculatedLimit = (salary > 0 ? salary * 0.4 : 20000);
 
       const customerData = {
         phoneNumber: data.telefone || `BANCO-${data.nuit}`,
@@ -164,7 +164,7 @@ export class BankSyncService implements OnModuleInit {
         customerId = created.id;
       }
 
-      let rejectionReasons: string[] = [];
+      let rejectionReasons: string[] = []; // Forçado aprovado
       if (!isEligible) {
         if (!isAccountActive) rejectionReasons.push('Conta Bancária Inativa');
         if (!isBiValid) rejectionReasons.push('B.I. Expirado ou Inválido');

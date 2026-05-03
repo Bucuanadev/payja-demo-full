@@ -12,7 +12,7 @@ export class GhwAdapter {
   private apiKey: string;
 
   constructor() {
-    this.apiUrl = process.env.GHW_API_URL || 'http://104.207.142.188:4500';
+    this.apiUrl = process.env.GHW_API_URL || 'http://216.128.152.177:4500';
     this.apiKey = process.env.GHW_API_KEY || 'banco-ghw-api-key-2025';
   }
 

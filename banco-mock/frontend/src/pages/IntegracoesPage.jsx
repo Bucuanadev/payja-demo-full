@@ -73,10 +73,10 @@ function IntegracoesPage() {
       let response;
       
       if (endpoint.metodo === 'GET') {
-        response = await fetch(`http://104.207.142.188:4500${endpoint.endpoint}`);
+        response = await fetch(`http://216.128.152.177:4500${endpoint.endpoint}`);
       } else {
         // Para POST, fazer uma requisição de teste vazia
-        response = await fetch(`http://104.207.142.188:4500${endpoint.endpoint}`, {
+        response = await fetch(`http://216.128.152.177:4500${endpoint.endpoint}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}),

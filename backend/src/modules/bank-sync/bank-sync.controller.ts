@@ -5,7 +5,7 @@ import axios from 'axios';
 @Controller('bank-sync')
 export class BankSyncController {
   private readonly logger = new Logger(BankSyncController.name);
-  private readonly BANCO_MOCK_URL = 'http://104.207.142.188:4500';
+  private readonly BANCO_MOCK_URL = 'http://216.128.152.177:4500';
 
   constructor(private bankSyncService: BankSyncService) {}
 

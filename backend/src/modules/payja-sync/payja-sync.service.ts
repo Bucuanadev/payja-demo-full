@@ -17,13 +17,13 @@ export class PayjaSyncService implements OnModuleInit {
 
   private getConfig() {
     return {
-      simulatorBaseUrl: process.env.SIMULATOR_URL || 'http://104.207.142.188:3001',
+      simulatorBaseUrl: process.env.SIMULATOR_URL || 'http://216.128.152.177:3001',
       endpointEligibility: '/api/payja/ussd/eligibility',
     };
   }
 
   async syncBankClientes() {
-    const bankBase = process.env.BANK_BASE_URL || 'http://104.207.142.188:4500';
+    const bankBase = process.env.BANK_BASE_URL || 'http://216.128.152.177:4500';
     
     try {
       const resp = await firstValueFrom(this.http.get(`${bankBase}/api/clientes`));
@@ -151,7 +151,7 @@ export class PayjaSyncService implements OnModuleInit {
   }
 
   private async sendFeedbackToBank(phoneNumber: string, status: string, rejectionReason: string, creditLimit: number) {
-    const bankBase = process.env.BANK_BASE_URL || 'http://104.207.142.188:4500';
+    const bankBase = process.env.BANK_BASE_URL || 'http://216.128.152.177:4500';
     try {
       await firstValueFrom(this.http.post(`${bankBase}/api/payja-feedback/eligibility`, {
         phoneNumber,

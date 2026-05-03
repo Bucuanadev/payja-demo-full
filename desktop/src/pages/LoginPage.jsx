@@ -42,7 +42,6 @@ function LoginPage() {
           <Title level={2} style={{ marginBottom: 8 }}>PayJA Admin</Title>
           <Text type="secondary">Sistema de Gestão de Microcrédito</Text>
         </div>
-
         <Form
           name="login"
           onFinish={handleLogin}
@@ -62,7 +61,6 @@ function LoginPage() {
               size="large"
             />
           </Form.Item>
-
           <Form.Item
             name="password"
             rules={[{ required: true, message: 'Por favor, insira sua senha!' }]}
@@ -73,7 +71,6 @@ function LoginPage() {
               size="large"
             />
           </Form.Item>
-
           <Form.Item>
             <Button
               type="primary"
@@ -86,7 +83,6 @@ function LoginPage() {
             </Button>
           </Form.Item>
         </Form>
-
         <div style={{ textAlign: 'center', marginTop: 16 }}>
           <Text type="secondary" style={{ fontSize: 12 }}>
             Credenciais de teste:<br />

@@ -1,148 +1,167 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Card,
-  Table,
-  Tag,
-  Button,
-  Space,
-  Modal,
-  Form,
-  Input,
-  InputNumber,
-  Select,
-  message,
-  Descriptions,
+import { 
+  Table, 
+  Card, 
+  Tag, 
+  Button, 
+  Space, 
+  Typography, 
+  Modal, 
+  Descriptions, 
+  Alert, 
   Tabs,
-  Badge,
-  Typography,
-  Alert,
   Tooltip,
+  Badge,
+  message
 } from 'antd';
-import {
-  UserAddOutlined,
-  EyeOutlined,
-  ReloadOutlined,
-  EditOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
+import { 
+  EyeOutlined, 
+  CheckCircleOutlined, 
+  CloseCircleOutlined, 
+  InfoCircleOutlined,
+  UserOutlined,
   TeamOutlined,
   DollarCircleOutlined,
+  HistoryOutlined,
   FileSearchOutlined,
-  HourglassOutlined,
+  ReloadOutlined
 } from '@ant-design/icons';
 import api from '../services/api';
 
 const { Title, Text } = Typography;
 
-const ClientesPage = () => {
-  const [loading, setLoading] = useState(false);
-  const [clientes, setClientes] = useState([]);
-  const [selectedCliente, setSelectedCliente] = useState(null);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
-  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const [form] = Form.useForm();
+function ClientesPage() {
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
-    loadData();
+    fetchCustomers();
   }, []);
 
-  const loadData = async () => {
-    setLoading(true);
+  const fetchCustomers = async () => {
     try {
-      const response = await api.get('/clientes');
-      setClientes(response.data.clientes || []);
+      setLoading(true);
+      const response = await api.get('/payja-decisions/customers');
+      setCustomers(response.data);
     } catch (error) {
-      message.error('Erro ao carregar dados');
+      console.error('Erro ao buscar clientes do PayJA:', error);
+      message.error('Não foi possível carregar a lista de decisões do PayJA.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleViewDetails = (record) => {
-    setSelectedCliente(record);
-    setIsModalVisible(true);
-  };
-
-  const handleEditCliente = (record) => {
-    setSelectedCliente(record);
-    form.setFieldsValue(record);
-    setIsEditModalVisible(true);
-  };
-
-  const handleUpdateCliente = async (values) => {
+  const handleViewDetails = async (id) => {
     try {
-      await api.patch(`/clientes/${selectedCliente.id}`, values);
-      message.success('Cliente atualizado com sucesso!');
-      form.resetFields();
-      setIsEditModalVisible(false);
-      loadData();
+      const response = await api.get(\`/payja-decisions/customers/\${id}\`);
+      setSelectedCustomer(response.data);
+      setModalVisible(true);
     } catch (error) {
-      message.error(error.response?.data?.erro || 'Erro ao atualizar cliente');
+      console.error('Erro ao buscar detalhes do cliente:', error);
+      message.error('Erro ao carregar detalhes do cliente.');
     }
   };
 
-  const handleAddCliente = async (values) => {
+  const getApproved = () => customers.filter(c => c.status === 'APPROVED');
+  const getNotApproved = () => customers.filter(c => c.status === 'REJECTED');
+
+  const getFactor = (key) => {
     try {
-      await api.post('/clientes', values);
-      message.success('Cliente adicionado com sucesso!');
-      form.resetFields();
-      setIsAddModalVisible(false);
-      loadData();
-    } catch (error) {
-      message.error(error.response?.data?.erro || 'Erro ao adicionar cliente');
-    }
+      if (!selectedCustomer || !selectedCustomer.scoringResults) return 'N/A';
+      const factors = JSON.parse(selectedCustomer.scoringResults[0]?.factors || '{}');
+      return factors.bankData?.[key] || factors[key] || 'N/A';
+    } catch (e) { return 'N/A'; }
   };
 
-  const formatCurrency = (value) => {
-    if (value === null || value === undefined) return '0 MZN';
-    return `${Number(value).toLocaleString('pt-MZ')} MZN`;
+  const baseColumns = [
+    {
+      title: 'Telefone',
+      dataIndex: 'phoneNumber',
+      key: 'phoneNumber',
+      width: 150,
+    },
+    {
+      title: 'Nome',
+      dataIndex: 'name',
+      key: 'name',
+      render: (name) => name || <Text type="secondary">Não informado</Text>,
+    },
+    {
+      title: 'Data de Cadastro',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      width: 150,
+      render: (date) => date ? new Date(date).toLocaleDateString('pt-PT') : '-',
+    },
+  ];
+
+  const actionsColumn = {
+    title: 'Ações',
+    key: 'actions',
+    width: 120,
+    render: (_, record) => (
+      <Button
+        type="primary"
+        ghost
+        size="small"
+        icon={<EyeOutlined />}
+        onClick={() => handleViewDetails(record.id)}
+      >
+        Ver Dossiê
+      </Button>
+    ),
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    try {
-      return new Date(dateString).toLocaleDateString('pt-PT');
-    } catch (e) {
-      return dateString;
-    }
-  };
+  const approvedColumns = [
+    ...baseColumns,
+    {
+      title: 'Salário Líquido',
+      dataIndex: 'salary',
+      key: 'salary',
+      render: (salary) => salary ? \`\${salary.toLocaleString('pt-MZ')} MZN\` : '-',
+    },
+    {
+      title: 'Limite de Crédito',
+      key: 'creditLimit',
+      render: (_, record) => {
+        const limit = record.creditLimit || 0;
+        return (
+          <Tag color="green" style={{ fontSize: '14px', padding: '4px 8px' }}>
+            <DollarCircleOutlined /> <strong>{limit.toLocaleString('pt-MZ')} MZN</strong>
+          </Tag>
+        );
+      }
+    },
+    {
+      title: 'Score',
+      dataIndex: 'creditScore',
+      key: 'score',
+      render: (score) => (
+        <Badge count={score || 'N/A'} style={{ backgroundColor: (score > 700 ? '#52c41a' : '#faad14') }} />
+      ),
+    },
+    actionsColumn,
+  ];
 
-  const getAprovadosPayja = () => clientes.filter(c => c.payja_decision === 'APPROVED' || c.payja_status === 'APROVADO');
-  const getNaoAprovadosPayja = () => clientes.filter(c => c.payja_decision === 'REJECTED' || c.payja_status === 'REJEITADO');
-  const getPendentes = () => clientes.filter(c => !c.payja_decision && !c.payja_status);
-
-  const columns = [
-    { title: 'NUIT', dataIndex: 'nuit', key: 'nuit', width: 120 },
-    { title: 'Nome', dataIndex: 'nome_completo', key: 'nome_completo' },
-    { title: 'Telefone', dataIndex: 'telefone', key: 'telefone', width: 130 },
-    { 
-      title: 'Tipo', 
-      dataIndex: 'tipo_cliente', 
-      key: 'tipo_cliente',
-      render: (tipo) => <Tag color={tipo === 'ASSALARIADO' ? 'blue' : 'orange'}>{tipo || 'N/A'}</Tag>
+  const notApprovedColumns = [
+    ...baseColumns,
+    {
+      title: 'Motivo da Rejeição',
+      key: 'rejectionReason',
+      render: (_, record) => (
+        <Text type="danger">
+          <CloseCircleOutlined /> {record.rejectionReason || "Critérios de elegibilidade não atingidos."}
+        </Text>
+      ),
     },
     {
       title: 'Status',
-      dataIndex: 'status_conta',
-      key: 'status_conta',
-      render: (status) => <Tag color={status === 'ATIVA' ? 'green' : 'red'}>{status || 'INATIVA'}</Tag>
+      key: 'status',
+      render: () => <Tag color="red">NÃO ELEGÍVEL</Tag>,
     },
-    {
-      title: 'Ações',
-      key: 'actions',
-      width: 150,
-      render: (_, record) => (
-        <Space>
-          <Tooltip title="Ver Detalhes">
-            <Button icon={<EyeOutlined />} size="small" onClick={() => handleViewDetails(record)} />
-          </Tooltip>
-          <Tooltip title="Editar">
-            <Button icon={<EditOutlined />} size="small" onClick={() => handleEditCliente(record)} />
-          </Tooltip>
-        </Space>
-      ),
-    },
+    actionsColumn,
   ];
 
   const items = [
@@ -150,131 +169,163 @@ const ClientesPage = () => {
       key: '1',
       label: (
         <span>
-          <TeamOutlined /> Todos <Badge count={clientes.length} offset={[10, -5]} size="small" />
+          <TeamOutlined /> Todos <Badge count={customers.length} offset={[10, -5]} size="small" />
         </span>
       ),
       children: (
-        <Table columns={columns} dataSource={clientes} rowKey="id" loading={loading} pagination={{ pageSize: 10 }} />
+        <Table 
+          columns={[...baseColumns, { title: 'Status', key: 'status', render: (_, r) => <Tag color={r.status === 'APPROVED' ? 'green' : 'red'}>{r.status === 'APPROVED' ? 'APROVADO' : 'REJEITADO'}</Tag> }, actionsColumn]} 
+          dataSource={customers} 
+          rowKey="id" 
+          loading={loading} 
+          pagination={{ pageSize: 10 }}
+        />
       ),
     },
     {
       key: '2',
       label: (
         <span>
-          <CheckCircleOutlined /> Aprovados pelo PayJA <Badge count={getAprovadosPayja().length} offset={[10, -5]} size="small" style={{ backgroundColor: '#52c41a' }} />
+          <CheckCircleOutlined /> Aprovados <Badge count={getApproved().length} offset={[10, -5]} size="small" style={{ backgroundColor: '#52c41a' }} />
         </span>
       ),
       children: (
-        <Table columns={columns} dataSource={getAprovadosPayja()} rowKey="id" loading={loading} pagination={{ pageSize: 10 }} />
+        <Table 
+          columns={approvedColumns} 
+          dataSource={getApproved()} 
+          rowKey="id" 
+          loading={loading} 
+          pagination={{ pageSize: 10 }}
+        />
       ),
     },
     {
       key: '3',
       label: (
         <span>
-          <CloseCircleOutlined /> Não Aprovados pelo PayJA <Badge count={getNaoAprovadosPayja().length} offset={[10, -5]} size="small" style={{ backgroundColor: '#ff4d4f' }} />
+          <CloseCircleOutlined /> Não Aprovados <Badge count={getNotApproved().length} offset={[10, -5]} size="small" style={{ backgroundColor: '#ff4d4f' }} />
         </span>
       ),
       children: (
-        <Table columns={columns} dataSource={getNaoAprovadosPayja()} rowKey="id" loading={loading} pagination={{ pageSize: 10 }} />
-      ),
-    },
-    {
-      key: '4',
-      label: (
-        <span>
-          <HourglassOutlined /> Pendentes <Badge count={getPendentes().length} offset={[10, -5]} size="small" style={{ backgroundColor: '#faad14' }} />
-        </span>
-      ),
-      children: (
-        <Table columns={columns} dataSource={getPendentes()} rowKey="id" loading={loading} pagination={{ pageSize: 10 }} />
+        <Table 
+          columns={notApprovedColumns} 
+          dataSource={getNotApproved()} 
+          rowKey="id" 
+          loading={loading} 
+          pagination={{ pageSize: 10 }}
+        />
       ),
     },
   ];
 
   return (
     <div style={{ padding: '24px' }}>
-      <Card 
-        title={
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Title level={4} style={{ margin: 0 }}>Gestão de Clientes</Title>
-            <Space>
-              <Button icon={<ReloadOutlined />} onClick={loadData}>Atualizar</Button>
-              <Button type="primary" icon={<UserAddOutlined />} onClick={() => setIsAddModalVisible(true)}>Novo Cliente</Button>
-            </Space>
-          </div>
-        }
-      >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <Title level={2} style={{ margin: 0 }}><UserOutlined /> Gestão de Clientes (Decisões PayJA)</Title>
+        <Button icon={<ReloadOutlined />} onClick={fetchCustomers}>Sincronizar com PayJA</Button>
+      </div>
+      
+      <Alert
+        message="Fonte de Decisão Única: PayJA"
+        description="Esta interface reflete diretamente as decisões de elegibilidade tomadas pelo motor de crédito PayJA. O Banco Mock apenas consome estes dados."
+        type="info"
+        showIcon
+        style={{ marginBottom: 24 }}
+      />
+
+      <Card>
         <Tabs defaultActiveKey="1" items={items} />
       </Card>
 
       <Modal
-        title="Dossiê do Cliente"
-        open={isModalVisible}
-        onCancel={() => setIsModalVisible(false)}
-        footer={[<Button key="close" onClick={() => setIsModalVisible(false)}>Fechar</Button>]}
-        width={800}
+        title={<span><FileSearchOutlined /> Dossiê do Cliente (Dados PayJA)</span>}
+        open={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        width={900}
+        footer={[
+          <Button key="close" onClick={() => setModalVisible(false)}>Fechar</Button>
+        ]}
       >
-        {selectedCliente && (
-          <Descriptions bordered column={2} size="small">
-            <Descriptions.Item label="Nome Completo" span={2}>{selectedCliente.nome_completo}</Descriptions.Item>
-            <Descriptions.Item label="NUIT">{selectedCliente.nuit}</Descriptions.Item>
-            <Descriptions.Item label="BI">{selectedCliente.bi}</Descriptions.Item>
-            <Descriptions.Item label="Validade do B.I.">
-              <Text strong style={{ color: new Date(selectedCliente.bi_validade) < new Date() ? '#ff4d4f' : 'inherit' }}>
-                {formatDate(selectedCliente.bi_validade)}
-              </Text>
-            </Descriptions.Item>
-            <Descriptions.Item label="Telefone">{selectedCliente.telefone}</Descriptions.Item>
-            <Descriptions.Item label="Email">{selectedCliente.email || '-'}</Descriptions.Item>
-            <Descriptions.Item label="Conta Criada">{formatDate(selectedCliente.conta_criada_em)}</Descriptions.Item>
-            <Descriptions.Item label="Status Conta">
-              <Tag color={selectedCliente.status_conta === 'ATIVA' ? 'success' : 'error'}>
-                {selectedCliente.status_conta || 'INATIVA'}
-              </Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="Saldo">{formatCurrency(selectedCliente.saldo)}</Descriptions.Item>
-            <Descriptions.Item label="Renda Mensal">{formatCurrency(selectedCliente.renda_mensal)}</Descriptions.Item>
-            <Descriptions.Item label="Salário Domiciliado">{selectedCliente.salario_domiciliado ? 'SIM' : 'NÃO'}</Descriptions.Item>
-            <Descriptions.Item label="Status Crédito">{selectedCliente.status_credito || 'LIMPO'}</Descriptions.Item>
-            <Descriptions.Item label="Dívida Total">{formatCurrency(selectedCliente.divida_total)}</Descriptions.Item>
-            
-            {(selectedCliente.payja_status || selectedCliente.payja_decision) && (
-              <>
-                <Descriptions.Item label="Status PayJA" span={2}>
-                  <Tag color={(selectedCliente.payja_status === 'APROVADO' || selectedCliente.payja_decision === 'APPROVED') ? 'green' : 'red'}>
-                    {(selectedCliente.payja_status === 'APROVADO' || selectedCliente.payja_decision === 'APPROVED') ? 'APROVADO' : 'REJEITADO'}
-                  </Tag>
-                </Descriptions.Item>
-                {(selectedCliente.payja_status === 'APROVADO' || selectedCliente.payja_decision === 'APPROVED') ? (
-                  <Descriptions.Item label="Limite PayJA" span={2}>
-                    <Text strong style={{ color: '#52c41a' }}>{formatCurrency(selectedCliente.payja_limit || selectedCliente.payja_credit_limit)}</Text>
-                  </Descriptions.Item>
-                ) : (
-                  <Descriptions.Item label="Motivo Rejeição" span={2}>
-                    <Text type="danger">{selectedCliente.payja_rejection_reason || selectedCliente.payja_reason || 'Requisitos não atendidos'}</Text>
-                  </Descriptions.Item>
-                )}
-              </>
+        {selectedCustomer && (
+          <div>
+            {selectedCustomer.status === 'REJECTED' ? (
+              <Alert
+                message="Análise de Risco: NÃO ELEGÍVEL"
+                description={
+                  <div>
+                    <Text strong>Motivo da Rejeição:</Text>
+                    <ul style={{ marginTop: 8 }}>
+                      <li><Text type="danger">{selectedCustomer.rejectionReason || "Critérios de score interno não atingidos."}</Text></li>
+                    </ul>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>
+                      * O sistema enviou automaticamente as instruções de regularização para este cliente.
+                    </Text>
+                  </div>
+                }
+                type="error"
+                showIcon
+                style={{ marginBottom: 20 }}
+              />
+            ) : (
+              <Alert
+                message="Análise de Risco: Aprovado"
+                description={
+                  <div>
+                    <Text>Este cliente cumpre todos os requisitos de elegibilidade e políticas de crédito.</Text>
+                    <div style={{ marginTop: 10 }}>
+                      <Text strong>Limite de Crédito Disponível: </Text>
+                      <Text strong style={{ color: '#52c41a', fontSize: '18px' }}>
+                        {(selectedCustomer.creditLimit || 0).toLocaleString('pt-MZ')} MZN
+                      </Text>
+                    </div>
+                  </div>
+                }
+                type="success"
+                showIcon
+                style={{ marginBottom: 20 }}
+              />
             )}
-          </Descriptions>
+            
+            <Descriptions title="Informações Cadastrais e Financeiras (Paridade Banco GHW)" bordered column={2} size="small">
+              <Descriptions.Item label="Nome Completo" span={2}>
+                <Text strong>{selectedCustomer.name || 'Não informado'}</Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="NUIT">{selectedCustomer.nuit || 'Não informado'}</Descriptions.Item>
+              <Descriptions.Item label="Telefone">{selectedCustomer.phoneNumber}</Descriptions.Item>
+              <Descriptions.Item label="Email">{selectedCustomer.email || 'N/A'}</Descriptions.Item>
+              <Descriptions.Item label="Conta Criada em">{getFactor('conta_criada_em') !== 'N/A' ? new Date(getFactor('conta_criada_em')).toLocaleDateString('pt-MZ') : 'N/A'}</Descriptions.Item>
+              <Descriptions.Item label="Status Conta">
+                <Tag color={getFactor('status_conta') === 'ATIVA' ? 'blue' : 'red'}>{getFactor('status_conta')}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Saldo">
+                <Text strong>{getFactor('saldo') !== 'N/A' ? getFactor('saldo').toLocaleString('pt-MZ') + ' MZN' : 'N/A'}</Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Renda Líquida Mensal">
+                <Text strong>{selectedCustomer.salary ? selectedCustomer.salary.toLocaleString('pt-MZ') + ' MZN' : 'N/A'}</Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Salário Domiciliado">
+                <Text>{getFactor('salario_domiciliado') === true ? 'SIM' : 'NÃO'}</Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Status Crédito">
+                <Tag color={getFactor('status_credito') === 'LIMPO' ? 'green' : 'red'}>{getFactor('status_credito')}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Dívida Total">
+                <Text type="danger">{getFactor('divida_total') !== 'N/A' ? getFactor('divida_total').toLocaleString('pt-MZ') + ' MZN' : '0 MZN'}</Text>
+              </Descriptions.Item>
+              <Descriptions.Item label="Status PayJA">
+                <Tag color={selectedCustomer.status === 'APPROVED' ? 'green' : 'red'}>{selectedCustomer.status === 'APPROVED' ? 'APROVADO' : 'REJEITADO'}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Limite PayJA">
+                <Text strong style={{ color: selectedCustomer.status === 'APPROVED' ? '#52c41a' : '#ff4d4f' }}>
+                  {(selectedCustomer.creditLimit || 0).toLocaleString('pt-MZ')} MZN
+                </Text>
+              </Descriptions.Item>
+            </Descriptions>
+          </div>
         )}
-      </Modal>
-
-      <Modal
-        title={isEditModalVisible ? "Editar Cliente" : "Adicionar Novo Cliente"}
-        open={isAddModalVisible || isEditModalVisible}
-        onCancel={() => { setIsAddModalVisible(false); setIsEditModalVisible(false); form.resetFields(); }}
-        onOk={() => form.submit()}
-      >
-        <Form form={form} layout="vertical" onFinish={isEditModalVisible ? handleUpdateCliente : handleAddCliente}>
-          <Form.Item name="nome_completo" label="Nome Completo" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="telefone" label="Telefone" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="renda_mensal" label="Renda Mensal"><InputNumber style={{ width: '100%' }} /></Form.Item>
-        </Form>
       </Modal>
     </div>
   );
-};
+}
 
 export default ClientesPage;
