@@ -611,7 +611,11 @@ app.post('/api/ussd', async (req, res) => {
       createdAt: new Date().toISOString()
     });
 
-    const t = String(text || '').trim();
+    const fullText = String(text || '').trim();
+    // Padrão USSD: texto acumulado separado por * (ex: "1*10000*1*1")
+    // Extrair apenas a última resposta do utilizador
+    const textParts = fullText.split('*');
+    const t = textParts[textParts.length - 1].trim();
     let response = '';
 
     // ── 1. INÍCIO — verificar elegibilidade no DB local ─────
