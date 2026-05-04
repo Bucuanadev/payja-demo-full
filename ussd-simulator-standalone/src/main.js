@@ -286,6 +286,21 @@ async function processLoanRequest(msisdn, amount, plan, customerInfo) {
         'UPDATE loan_requests SET status = ?, bancoDesembolsoId = ?, updatedAt = ? WHERE id = ?',
         ['APPROVED', desembolsoId, Date.now(), loanDbId]
       );
+      // Notificar PayJA que o banco aprovou
+      if (payjaLoanId) {
+        try {
+          const token = await getPayjaToken();
+          if (token) {
+            await axios.patch(`${PAYJA_API_URL}/loans/${payjaLoanId}/status`, 
+              { status: 'DISBURSED' },
+              { headers: { Authorization: `Bearer ${token}` }, timeout: 5000 }
+            );
+            console.log(`✅ PayJA notificado: empréstimo ${payjaLoanId} → DISBURSED`);
+          }
+        } catch (notifyErr) {
+          console.warn(`⚠️ Aviso ao notificar PayJA: ${notifyErr.message}`);
+        }
+      }
     } else {
       throw new Error(bancoRes.data?.erro || 'Banco recusou o desembolso');
     }
@@ -996,6 +1011,98 @@ app.get('/api/sync/status', async (req, res) => {
 // =============================================
 // INICIALIZAÇÃO
 // =============================================
+
+// =============================================
+// WEBHOOK: PayJA → Simulador (actualização de empréstimo)
+// =============================================
+app.post('/api/payja/loan-update', async (req, res) => {
+  try {
+    const { loanId, status, msisdn, amount, termLabel, monthlyPayment, totalAmount, desembolsoId, reason } = req.body;
+    console.log(`\n📨 Webhook PayJA→Simulador: loanId=${loanId} status=${status} msisdn=${msisdn}`);
+    // Actualizar DB local
+    if (loanId) {
+      await db.run(
+        'UPDATE loan_requests SET status = ?, updatedAt = ? WHERE payjaLoanId = ?',
+        [status || 'UPDATED', Date.now(), loanId]
+      );
+    }
+    if (msisdn) {
+      const phone = String(msisdn).replace(/\D/g, '');
+      const normalizedPhone = phone.length === 9 ? '258' + phone : phone;
+      // Enviar SMS conforme o status
+      if (status === 'APPROVED' || status === 'DISBURSED') {
+        const smsMsg =
+          `PayJA ✅ CRÉDITO APROVADO!\n` +
+          `Valor: ${fmt(amount || 0)} MZN\n` +
+          `Prazo: ${termLabel || 'N/A'} | ${fmt(monthlyPayment || 0)} MZN/mês\n` +
+          `Total a pagar: ${fmt(totalAmount || 0)} MZN\n` +
+          `Ref: ${desembolsoId || loanId || 'N/A'}\n` +
+          `O valor foi enviado para o seu e-Mola. Obrigado!`;
+        await logSms(normalizedPhone, smsMsg, 'LOAN_APPROVED');
+        console.log(`📱 SMS LOAN_APPROVED enviado para ${normalizedPhone}`);
+      } else if (status === 'REJECTED') {
+        const smsMsg =
+          `PayJA ❌ Pedido de crédito recusado.\n` +
+          `Motivo: ${reason || 'Análise de crédito não aprovada'}\n` +
+          `Para mais informações contacte: 800-PAYJA`;
+        await logSms(normalizedPhone, smsMsg, 'LOAN_REJECTED');
+        console.log(`📱 SMS LOAN_REJECTED enviado para ${normalizedPhone}`);
+      } else if (status === 'ANALYZING') {
+        const smsMsg =
+          `PayJA ⏳ Pedido em análise.\n` +
+          `Valor: ${fmt(amount || 0)} MZN\n` +
+          `O seu pedido está a ser analisado pelo banco.\n` +
+          `Será notificado em breve.`;
+        await logSms(normalizedPhone, smsMsg, 'LOAN_PROCESSING');
+      }
+    }
+    res.json({ success: true, message: 'Webhook processado' });
+  } catch (err) {
+    console.error('Erro no webhook PayJA→Simulador:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// =============================================
+// ROTA: Listar empréstimos para o PayJA buscar
+// =============================================
+app.get('/api/simulator/loans', async (req, res) => {
+  try {
+    const { status, msisdn, limit = 100 } = req.query;
+    let query = 'SELECT lr.*, c.firstName, c.lastName FROM loan_requests lr LEFT JOIN customers c ON lr.msisdn = c.msisdn';
+    const params = [];
+    const conditions = [];
+    if (status) { conditions.push('lr.status = ?'); params.push(status); }
+    if (msisdn) { conditions.push('lr.msisdn = ?'); params.push(msisdn); }
+    if (conditions.length) query += ' WHERE ' + conditions.join(' AND ');
+    query += ' ORDER BY lr.createdAt DESC LIMIT ?';
+    params.push(parseInt(limit));
+    const loans = await db.all(query, params);
+    res.json({
+      total: loans.length,
+      loans: loans.map(l => ({
+        id: l.id,
+        msisdn: l.msisdn,
+        customerName: [l.firstName, l.lastName].filter(Boolean).join(' ') || l.msisdn,
+        amount: l.amount,
+        termMonths: l.termMonths,
+        termLabel: l.termLabel,
+        interestRate: l.interestRate,
+        monthlyPayment: l.monthlyPayment,
+        totalAmount: l.totalAmount,
+        status: l.status,
+        payjaLoanId: l.payjaLoanId,
+        bancoDesembolsoId: l.bancoDesembolsoId,
+        createdAt: new Date(l.createdAt).toISOString(),
+        updatedAt: new Date(l.updatedAt).toISOString()
+      }))
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 async function startServer() {
   await initDatabase();
 

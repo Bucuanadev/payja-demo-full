@@ -365,14 +365,14 @@
                 // Normalize fields for the UI
                 allLoans = loansData.map(l => ({
                     id: String(l.id || ''),
-                    phoneNumber: l.phoneNumber || l.phone || '',
-                    customerName: l.customerName || l.name || l.customer || '',
+                    phoneNumber: l.msisdn || l.phoneNumber || l.phone || '',
+                    customerName: l.customerName || l.name || l.firstName || l.customer || '',
                     amount: l.amount || 0,
-                    term: l.term || l.duration || '',
+                    term: l.termLabel || l.term || l.duration || (l.termMonths ? Math.round(l.termMonths/12) + ' anos' : ''),
                     interest: (l.interest || l.interestPct || l.interestPct === 0) ? (l.interest || l.interestPct) : null,
                     reason: l.reason || '',
                     bank: l.bank || '',
-                    status: (l.status || '').toString().toLowerCase(),
+                    status: (l.status || '').toString().toUpperCase(),
                     score: l.score || null,
                     createdAt: l.createdAt || l.created_at || new Date().toISOString()
                 }));
@@ -393,9 +393,9 @@
 
         function updateStats() {
             document.getElementById('totalLoans').textContent = allLoans.length;
-            document.getElementById('pendingLoans').textContent = allLoans.filter(l => l.status === 'pending').length;
-            document.getElementById('approvedLoans').textContent = allLoans.filter(l => l.status === 'approved').length;
-            document.getElementById('rejectedLoans').textContent = allLoans.filter(l => l.status === 'rejected').length;
+            document.getElementById('pendingLoans').textContent = allLoans.filter(l => l.status === 'PENDING' || l.status === 'PROCESSING').length;
+            document.getElementById('approvedLoans').textContent = allLoans.filter(l => l.status === 'APPROVED').length;
+            document.getElementById('rejectedLoans').textContent = allLoans.filter(l => l.status === 'REJECTED' || l.status === 'FAILED').length;
         }
 
         function renderLoans(loans) {
