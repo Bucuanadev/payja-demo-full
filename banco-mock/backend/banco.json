@@ -11,7 +11,7 @@
       "numero_conta": "0001000000001",
       "tipo_conta": "SALARIO",
       "status_conta": "ATIVA",
-      "saldo": 7000,
+      "saldo": 0,
       "renda_mensal": 35000,
       "salario_domiciliado": true,
       "tipo_cliente": "ASSALARIADO",
@@ -22,7 +22,7 @@
       "score_credito": 750,
       "historico_pagamentos": "BOM",
       "criado_em": "2025-02-26T10:29:08.108Z",
-      "atualizado_em": "2026-05-04T08:59:06.491Z",
+      "atualizado_em": "2026-05-04T09:18:52.102Z",
       "payja_status": "APROVADO",
       "payja_rejection_reason": null,
       "payja_limit": 14000,
@@ -720,6 +720,30 @@
       "status": "CONCLUIDO",
       "referencia_externa": "PAYJA-1777885274270",
       "criado_em": "2026-05-04T09:01:14.272Z"
+    },
+    {
+      "id": "a7ca1bc1-a2a2-4a14-a9c4-99dc89d7603a",
+      "cliente_id": "59004a6e-38c5-48d4-b4a0-4f1d59a32c46",
+      "tipo": "DEBITO",
+      "valor": 8000,
+      "descricao": "Crédito PayJA - 4 anos - 450,67 MZN/mês",
+      "origem": "0001000000001",
+      "destino": "258841234567",
+      "status": "CONCLUIDO",
+      "referencia_externa": "PAYJA-1777886260091",
+      "criado_em": "2026-05-04T09:17:40.095Z"
+    },
+    {
+      "id": "0898241d-5c06-4ff8-8023-c1afdb530e92",
+      "cliente_id": "59004a6e-38c5-48d4-b4a0-4f1d59a32c46",
+      "tipo": "DEBITO",
+      "valor": 8000,
+      "descricao": "Crédito PayJA - 4 anos - 450,67 MZN/mês",
+      "origem": "0001000000001",
+      "destino": "258841234567",
+      "status": "CONCLUIDO",
+      "referencia_externa": "PAYJA-1777886332096",
+      "criado_em": "2026-05-04T09:18:52.101Z"
     }
   ],
   "validacoes": [
@@ -1160,13 +1184,37 @@
       "processado_em": "2026-05-04T09:01:14.273Z",
       "tentativas": 0,
       "criado_em": "2026-05-04T09:01:14.273Z"
+    },
+    {
+      "id": "cbaea403-5b24-485d-894d-870fb558ee9b",
+      "cliente_id": "59004a6e-38c5-48d4-b4a0-4f1d59a32c46",
+      "transacao_id": "a7ca1bc1-a2a2-4a14-a9c4-99dc89d7603a",
+      "valor": 8000,
+      "numero_emola": "258841234567",
+      "status": "CONCLUIDO",
+      "referencia_payja": "PAYJA-1777886260091",
+      "processado_em": "2026-05-04T09:17:40.095Z",
+      "tentativas": 0,
+      "criado_em": "2026-05-04T09:17:40.095Z"
+    },
+    {
+      "id": "2734ca93-ba56-4967-a018-4d0945d27004",
+      "cliente_id": "59004a6e-38c5-48d4-b4a0-4f1d59a32c46",
+      "transacao_id": "0898241d-5c06-4ff8-8023-c1afdb530e92",
+      "valor": 8000,
+      "numero_emola": "258841234567",
+      "status": "CONCLUIDO",
+      "referencia_payja": "PAYJA-1777886332096",
+      "processado_em": "2026-05-04T09:18:52.101Z",
+      "tentativas": 0,
+      "criado_em": "2026-05-04T09:18:52.101Z"
     }
   ],
   "emprestimos": [],
   "pagamentos": [],
   "consultas_capacidade": [],
   "metrics": {
-    "last_payja_pull_at": "2026-05-04T09:16:12.531Z",
+    "last_payja_pull_at": "2026-05-04T09:18:12.535Z",
     "last_payja_loans_sync_at": "2026-02-27T08:59:46.468Z"
   },
   "payja_decisions": []

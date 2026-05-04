@@ -819,9 +819,18 @@ app.post('/api/ussd', async (req, res) => {
         const plan = s.chosenPlan || {};
         response = `END A processar o seu pedido...\nReceberá um SMS de confirmação em breve.\nObrigado por usar o PayJA!`;
 
-        // Processar em background (não bloquear resposta USSD)
+        // Enviar SMS imediato de "a processar" e depois processar em background
+        const _pPhone = phoneNumber;
+        const _pAmount = s.amount;
+        const _pPlan = plan;
+        const _pInfo = s.clienteInfo;
         setImmediate(async () => {
-          await processLoanRequest(phoneNumber, s.amount, plan, s.clienteInfo);
+          // SMS imediato: aguardar processamento
+          await logSms(_pPhone,
+            `PayJA ⏳ Pedido recebido!\nValor: ${fmt(_pAmount)} MZN | Prazo: ${_pPlan.label}\nA aguardar confirmação do banco...\nSerá notificado em breve.`,
+            'LOAN_PROCESSING');
+          // Processar e enviar SMS final
+          await processLoanRequest(_pPhone, _pAmount, _pPlan, _pInfo);
         });
 
         delete sessions[sessionId];
