@@ -1,3 +1,4 @@
+const axios = require('axios');
 const express = require('express');
 const router = express.Router();
 const db = require('../database');
@@ -93,6 +94,16 @@ router.post('/executar', async (req, res) => {
       });
 
       console.log(`✅ Desembolso ${desembolso.id} APROVADO E CONCLUÍDO IMEDIATAMENTE`);
+      // Notificar PayJA e Simulador (em background, sem bloquear resposta)
+      const msisdoCliente = cliente.telefone || cliente.numero_telefone || null;
+      notifyPayJAAndSimulator({
+        referencia_payja,
+        desembolsoId: desembolso.id,
+        valor,
+        numero_emola,
+        nomeCliente: cliente.nome_completo,
+        msisdn: msisdoCliente,
+      }).catch(err => console.warn('Erro na notificação background:', err.message));
       console.log(`   Saldo anterior: ${saldoAtual} MZN`);
       console.log(`   Saldo após desembolso: ${novoSaldo} MZN`);
 
@@ -144,6 +155,52 @@ router.post('/executar', async (req, res) => {
  * GET /api/desembolso/status/:id
  * Consultar status de um desembolso
  */
+
+// Função para notificar PayJA e Simulador após desembolso
+async function notifyPayJAAndSimulator({ referencia_payja, desembolsoId, valor, numero_emola, nomeCliente, msisdn }) {
+  const PAYJA_URL = 'http://216.128.152.177:3000/api/v1';
+  const SIMULATOR_URL = 'http://216.128.152.177:3001';
+  
+  // 1. Notificar PayJA sobre desembolso concluído
+  try {
+    // Buscar token do PayJA (admin)
+    const loginRes = await axios.post(`${PAYJA_URL}/auth/login`, {
+      email: 'admin@payja.mz',
+      password: 'PayJA@2024'
+    }, { timeout: 5000 });
+    const token = loginRes.data?.access_token;
+    if (token && referencia_payja) {
+      // Actualizar status do empréstimo no PayJA para DISBURSED
+      await axios.patch(`${PAYJA_URL}/loans/${referencia_payja}/status`,
+        { status: 'DISBURSED' },
+        { headers: { Authorization: `Bearer ${token}` }, timeout: 5000 }
+      );
+      console.log(`✅ PayJA notificado: empréstimo ${referencia_payja} → DISBURSED`);
+    }
+  } catch (err) {
+    console.warn(`⚠️ Aviso ao notificar PayJA: ${err.message}`);
+  }
+  
+  // 2. Notificar Simulador directamente (SMS ao cliente)
+  try {
+    if (msisdn) {
+      await axios.post(`${SIMULATOR_URL}/api/payja/loan-update`, {
+        loanId: referencia_payja || desembolsoId,
+        status: 'APPROVED',
+        msisdn: msisdn,
+        amount: valor,
+        termLabel: 'N/A',
+        monthlyPayment: 0,
+        totalAmount: valor,
+        desembolsoId: desembolsoId,
+      }, { timeout: 5000 });
+      console.log(`✅ Simulador notificado: SMS enviado para ${msisdn}`);
+    }
+  } catch (err) {
+    console.warn(`⚠️ Aviso ao notificar Simulador: ${err.message}`);
+  }
+}
+
 router.get('/status/:id', (req, res) => {
   try {
     const desembolso = db.db.prepare(`
