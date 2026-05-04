@@ -335,7 +335,7 @@
       "atualizado_em": "2026-03-23T18:55:03.965Z",
       "payja_status": "APROVADO",
       "payja_rejection_reason": null,
-      "payja_limit": 48000,
+      "payja_limit": 60000,
       "payja_last_sync": "2026-03-23T18:55:03.965Z",
       "payja_decision": "APPROVED",
       "payja_credit_limit": 48000,
@@ -1092,7 +1092,7 @@
   "pagamentos": [],
   "consultas_capacidade": [],
   "metrics": {
-    "last_payja_pull_at": "2026-05-04T07:50:12.191Z",
+    "last_payja_pull_at": "2026-05-04T08:31:12.445Z",
     "last_payja_loans_sync_at": "2026-02-27T08:59:46.468Z"
   },
   "payja_decisions": []

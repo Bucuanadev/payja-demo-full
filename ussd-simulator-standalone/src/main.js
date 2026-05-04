@@ -270,40 +270,52 @@ app.post('/api/ussd', async (req, res) => {
   try {
     const { sessionId, phoneNumber, text = '' } = req.body || {};
     console.log(`📞 USSD: ${phoneNumber} - "${text}" (session=${sessionId})`);
-    
-    let s = sessions[sessionId] || (sessions[sessionId] = { 
-      id: sessionId, 
-      phoneNumber, 
+
+    let s = sessions[sessionId] || (sessions[sessionId] = {
+      id: sessionId,
+      phoneNumber,
       step: 'INIT',
       createdAt: new Date().toISOString()
     });
-    
+
     const t = String(text || '').trim();
     let response = '';
-    
-    // 1. Início da Sessão - Verificar elegibilidade
+
+    // ── Helper: formatar moeda ──────────────────────────────
+    const fmt = (n) => Number(n).toLocaleString('pt-MZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    // ── Helper: calcular prestação mensal ──────────────────
+    // taxa: percentagem por mês (ex: 3.55), anos: número de anos
+    const prestacao = (principal, taxaPorc, anos) => {
+      const meses = anos * 12;
+      const r = taxaPorc / 100;
+      // Juros simples sobre o capital: prestação = (principal + principal*r*meses) / meses
+      return (principal * (1 + r * meses)) / meses;
+    };
+
+    // ── 1. INÍCIO DA SESSÃO ─────────────────────────────────
     if (!t || t === '*299#' || t === '*898#' || s.step === 'INIT') {
       try {
         const eligData = await checkEligibility(phoneNumber);
-        
+
         if (eligData.elegivel) {
           const limit = eligData.limite_aprovado || 0;
-          response = `CON Bem-vindo ao PayJA Nedbank!\nLimite pré-aprovado: ${limit.toLocaleString('pt-MZ')} MZN\n\n1. Solicitar Crédito\n2. Consultar Saldo\n3. Ajuda\n0. Sair`;
           s.step = 'MENU';
           s.limit = limit;
           s.clienteInfo = eligData.cliente || {};
-          
-          // SMS de confirmação de elegibilidade
-          await logSms(phoneNumber, `PayJA: Parabéns! Tem um limite pré-aprovado de ${limit.toLocaleString('pt-MZ')} MZN. Marque *299# para solicitar.`, 'ELIGIBILITY');
-          
+
+          await logSms(phoneNumber,
+            `PayJA: Parabéns! Tem um limite pré-aprovado de ${fmt(limit)} MZN. Marque *299# para solicitar.`,
+            'ELIGIBILITY');
+
+          response = `CON Bem-vindo ao PayJA Nedbank!\nLimite pré-aprovado: ${fmt(limit)} MZN\n\n1. Solicitar Crédito\n2. Consultar Saldo\n3. Ajuda\n0. Sair`;
+
         } else {
           const motivo = eligData.motivo || 'Critérios de elegibilidade não atendidos.';
           const orientacao = eligData.orientacao || 'Aproxime-se de um balcão Nedbank.';
-          
-          // SMS de inelegibilidade
-          const smsMsg = `PayJA: Lamentamos, mas não é elegível para crédito. Motivo: ${motivo} ${orientacao}`;
-          await logSms(phoneNumber, smsMsg, 'INELIGIBILITY');
-          
+          await logSms(phoneNumber,
+            `PayJA: Lamentamos, mas não é elegível para crédito. Motivo: ${motivo} ${orientacao}`,
+            'INELIGIBILITY');
           response = `END Desculpe, não é elegível no momento.\n\nMotivo: ${motivo}\n\nEnviámos um SMS com mais detalhes.`;
           delete sessions[sessionId];
         }
@@ -313,58 +325,163 @@ app.post('/api/ussd', async (req, res) => {
         delete sessions[sessionId];
       }
     }
-    // 2. Menu Principal
+
+    // ── 2. MENU PRINCIPAL ───────────────────────────────────
     else if (s.step === 'MENU') {
       if (t === '1') {
-        response = `CON Valor a solicitar (MZN):\nLimite disponível: ${(s.limit || 0).toLocaleString('pt-MZ')} MZN\n\nDigite o valor:`;
+        const minAmt = 4000;
+        const maxAmt = s.limit || 0;
         s.step = 'AMOUNT';
+        response = `CON Solicitar Crédito\nLimite disponível: ${fmt(maxAmt)} MZN\nMínimo: ${fmt(minAmt)} MZN\n\nIntroduza o valor desejado (MZN):`;
       } else if (t === '2') {
-        response = `END Saldo disponível: 0.00 MZN\nLimite aprovado: ${(s.limit || 0).toLocaleString('pt-MZ')} MZN`;
+        response = `END Saldo disponível: 0,00 MZN\nLimite aprovado: ${fmt(s.limit || 0)} MZN`;
         delete sessions[sessionId];
       } else if (t === '3') {
-        response = 'END Ajuda: Ligue 800-PAYJA ou WhatsApp 84 123 4567';
+        response = 'END Ajuda: Ligue 800-PAYJA (gratuito)\nou WhatsApp +258 84 123 4567';
         delete sessions[sessionId];
       } else if (t === '0') {
-        response = 'END Sessão encerrada. Obrigado.';
+        response = 'END Sessão encerrada. Obrigado por usar o PayJA!';
         delete sessions[sessionId];
       } else {
-        response = `CON Opção inválida.\n\n1. Solicitar Crédito\n2. Consultar Saldo\n3. Ajuda\n0. Sair`;
+        response = `CON Opção inválida. Tente novamente.\n\n1. Solicitar Crédito\n2. Consultar Saldo\n3. Ajuda\n0. Sair`;
       }
     }
-    // 3. Valor do Empréstimo
+
+    // ── 3. VALOR DO EMPRÉSTIMO ──────────────────────────────
     else if (s.step === 'AMOUNT') {
       const amount = parseFloat(t.replace(/[^0-9.]/g, ''));
+      const minAmt = 4000;
+      const maxAmt = s.limit || 0;
+
       if (isNaN(amount) || amount <= 0) {
-        response = `CON Valor inválido. Insira um valor numérico:`;
-      } else if (amount > s.limit) {
-        response = `CON Valor excede o limite (${(s.limit || 0).toLocaleString('pt-MZ')} MZN).\nInsira um valor menor:`;
+        response = `CON Valor inválido. Introduza apenas números:\n(Mínimo: ${fmt(minAmt)} MZN)`;
+      } else if (amount < minAmt) {
+        response = `CON Valor abaixo do mínimo permitido.\nMínimo: ${fmt(minAmt)} MZN\n\nIntroduza outro valor:`;
+      } else if (amount > maxAmt) {
+        response = `CON Valor excede o seu limite aprovado.\nLimite: ${fmt(maxAmt)} MZN\n\nIntroduza um valor até ${fmt(maxAmt)} MZN:`;
       } else {
-        const total = amount * 1.15;
-        response = `CON Confirmar pedido:\nValor: ${amount.toLocaleString('pt-MZ')} MZN\nJuros: 15%\nTotal a pagar: ${total.toLocaleString('pt-MZ')} MZN\n\n1. Confirmar\n2. Cancelar`;
         s.amount = amount;
-        s.step = 'CONFIRM';
+        s.step = 'PLAN';
+
+        // Construir menu de planos conforme o valor
+        let planMenu = '';
+        if (amount < 50000) {
+          // Apenas 4 e 5 anos
+          const p4 = prestacao(amount, 3.55, 4);
+          const p5 = prestacao(amount, 3.18, 5);
+          planMenu =
+            `CON Valor: ${fmt(amount)} MZN\nEscolha o prazo de pagamento:\n\n` +
+            `1. 4 anos - ${fmt(p4)} MZN/mês (3,55%/mês)\n` +
+            `2. 5 anos - ${fmt(p5)} MZN/mês (3,18%/mês)\n` +
+            `0. Voltar`;
+          s.plans = [
+            { label: '4 anos', years: 4, rate: 3.55, monthly: p4 },
+            { label: '5 anos', years: 5, rate: 3.18, monthly: p5 }
+          ];
+        } else {
+          // 3, 4 e 5 anos
+          const p3 = prestacao(amount, 4.00, 3);
+          const p4 = prestacao(amount, 3.55, 4);
+          const p5 = prestacao(amount, 3.18, 5);
+          planMenu =
+            `CON Valor: ${fmt(amount)} MZN\nEscolha o prazo de pagamento:\n\n` +
+            `1. 3 anos - ${fmt(p3)} MZN/mês (4,00%/mês)\n` +
+            `2. 4 anos - ${fmt(p4)} MZN/mês (3,55%/mês)\n` +
+            `3. 5 anos - ${fmt(p5)} MZN/mês (3,18%/mês)\n` +
+            `0. Voltar`;
+          s.plans = [
+            { label: '3 anos', years: 3, rate: 4.00, monthly: p3 },
+            { label: '4 anos', years: 4, rate: 3.55, monthly: p4 },
+            { label: '5 anos', years: 5, rate: 3.18, monthly: p5 }
+          ];
+        }
+        response = planMenu;
       }
     }
-    // 4. Confirmação Final
+
+    // ── 4. ESCOLHA DO PLANO ─────────────────────────────────
+    else if (s.step === 'PLAN') {
+      if (t === '0') {
+        // Voltar ao passo de valor
+        s.step = 'AMOUNT';
+        response = `CON Introduza o valor desejado (MZN):\n(Mínimo: 4.000,00 MZN | Máximo: ${fmt(s.limit || 0)} MZN)`;
+      } else {
+        const idx = parseInt(t, 10) - 1;
+        const plans = s.plans || [];
+        if (isNaN(idx) || idx < 0 || idx >= plans.length) {
+          // Reconstruir menu de planos
+          const lines = plans.map((p, i) => `${i + 1}. ${p.label} - ${fmt(p.monthly)} MZN/mês (${p.rate.toFixed(2).replace('.', ',')}%/mês)`).join('\n');
+          response = `CON Opção inválida. Escolha:\n\n${lines}\n0. Voltar`;
+        } else {
+          const chosen = plans[idx];
+          s.chosenPlan = chosen;
+          s.step = 'CONFIRM';
+
+          const totalMeses = chosen.years * 12;
+          const totalPagar = chosen.monthly * totalMeses;
+
+          response =
+            `CON Resumo do Pedido:\n` +
+            `Valor solicitado: ${fmt(s.amount)} MZN\n` +
+            `Prazo: ${chosen.label} (${totalMeses} meses)\n` +
+            `Taxa: ${chosen.rate.toFixed(2).replace('.', ',')}% ao mês\n` +
+            `Prestação: ${fmt(chosen.monthly)} MZN/mês\n` +
+            `Total a pagar: ${fmt(totalPagar)} MZN\n\n` +
+            `1. Confirmar\n2. Cancelar`;
+        }
+      }
+    }
+
+    // ── 5. CONFIRMAÇÃO FINAL ────────────────────────────────
     else if (s.step === 'CONFIRM') {
       if (t === '1') {
-        response = `END Pedido enviado com sucesso!\nReceberá o valor em breve na sua conta e-Mola.\nObrigado por usar o PayJA!`;
-        await logSms(phoneNumber, `PayJA: O seu crédito de ${(s.amount || 0).toLocaleString('pt-MZ')} MZN foi aprovado e está a ser processado. Receberá em breve.`, 'APPROVAL');
+        const plan = s.chosenPlan || {};
+        const totalMeses = (plan.years || 0) * 12;
+        const totalPagar = (plan.monthly || 0) * totalMeses;
+
+        response =
+          `END Pedido submetido com sucesso!\n` +
+          `Valor: ${fmt(s.amount)} MZN\n` +
+          `Prazo: ${plan.label || ''} | ${fmt(plan.monthly || 0)} MZN/mês\n` +
+          `Receberá o valor na sua conta e-Mola em breve.\nObrigado por usar o PayJA!`;
+
+        await logSms(phoneNumber,
+          `PayJA: O seu crédito de ${fmt(s.amount)} MZN foi aprovado!\n` +
+          `Prazo: ${plan.label} | Prestação: ${fmt(plan.monthly)} MZN/mês\n` +
+          `Total a pagar: ${fmt(totalPagar)} MZN\n` +
+          `O valor será depositado em breve na sua conta e-Mola.`,
+          'APPROVAL');
+
+        // Registar empréstimo na DB local
+        try {
+          await db.run(
+            `INSERT INTO sms_logs (msisdn, message, type, sentAt, status) VALUES (?, ?, ?, ?, ?)`,
+            [phoneNumber, `LOAN|${s.amount}|${plan.label}|${plan.rate}|${plan.monthly}`, 'LOAN_RECORD', Date.now(), 'SENT']
+          );
+        } catch (dbErr) { console.warn('Aviso DB loan:', dbErr.message); }
+
+      } else if (t === '2') {
+        response = 'END Operação cancelada. Pode iniciar novamente com *299#.';
       } else {
-        response = 'END Operação cancelada.';
+        response = `CON Opção inválida.\n\n1. Confirmar\n2. Cancelar`;
+        // Não apagar sessão — aguardar resposta válida
+        res.set('Content-Type', 'text/plain');
+        return res.send(response);
       }
       delete sessions[sessionId];
     }
+
+    // ── SESSÃO EXPIRADA ─────────────────────────────────────
     else {
       response = 'END Sessão expirada. Marque *299# para iniciar.';
       delete sessions[sessionId];
     }
-    
+
     res.set('Content-Type', 'text/plain');
     return res.send(response);
   } catch (err) {
     console.error('❌ Erro USSD:', err);
-    res.status(500).send('END Erro interno do sistema.');
+    res.status(500).send('END Erro interno do sistema. Tente mais tarde.');
   }
 });
 
