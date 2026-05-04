@@ -683,6 +683,11 @@
         function openSmsPopup() {
             smsPopupOpen = true;
             document.getElementById('smsPopupOverlay').classList.add('open');
+            // Actualizar título com o número activo
+            const phone = document.getElementById('phoneInput')?.value?.trim() || '';
+            const titleEl = document.getElementById('smsPopupTitle');
+            if (titleEl && phone) titleEl.textContent = '✉️ SMS — ' + phone;
+            else if (titleEl) titleEl.textContent = '✉️ SMS Recebidos';
             loadSmsPopup();
         }
 
@@ -699,7 +704,12 @@
 
         async function loadSmsPopup() {
             try {
-                const res = await fetch(window.location.origin + '/api/sms/logs');
+                // Filtrar SMS pelo número activo no simulador
+                const phone = document.getElementById('phoneInput')?.value?.trim() || '';
+                const url = phone
+                    ? window.location.origin + '/api/sms/logs?phone=' + encodeURIComponent(phone) + '&limit=20'
+                    : window.location.origin + '/api/sms/logs?limit=20';
+                const res = await fetch(url);
                 const logs = await res.json();
                 const body = document.getElementById('smsPopupBody');
                 if (!logs || !logs.length) {
@@ -731,9 +741,13 @@
         async function updateSmsBadge(count) {
             try {
                 if (count === undefined) {
-                    const res = await fetch(window.location.origin + '/api/sms/logs');
-                    const logs = await res.json();
-                    count = logs.length;
+                    const phone = document.getElementById('phoneInput')?.value?.trim() || '';
+                    const url = phone
+                        ? window.location.origin + '/api/sms/count?phone=' + encodeURIComponent(phone)
+                        : window.location.origin + '/api/sms/count';
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    count = data.total || 0;
                 }
                 const badge = document.getElementById('smsBadge');
                 if (badge) {

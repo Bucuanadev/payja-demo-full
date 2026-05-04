@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SMS - PayJA Simulador</title>
+    <title>SMS — PayJA Simulador</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -11,370 +11,403 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
         }
-        .page-header {
-            max-width: 900px;
-            margin: 0 auto 20px;
+        .layout { display: flex; height: 100vh; }
+
+        /* ── SIDEBAR (lista de clientes) ── */
+        .sidebar {
+            width: 300px;
+            min-width: 260px;
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(10px);
             display: flex;
-            align-items: center;
-            gap: 15px;
+            flex-direction: column;
+            border-right: 1px solid rgba(255,255,255,0.2);
         }
+        .sidebar-header {
+            padding: 20px 16px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        .sidebar-title { color: #fff; font-size: 18px; font-weight: 700; }
+        .sidebar-sub { color: rgba(255,255,255,0.7); font-size: 12px; margin-top: 2px; }
         .back-btn {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: #fff;
-            padding: 10px 18px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: background 0.2s;
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(255,255,255,0.2); border: none; color: #fff;
+            padding: 7px 12px; border-radius: 8px; cursor: pointer;
+            font-size: 12px; font-weight: 600; margin-bottom: 10px;
+            text-decoration: none;
         }
         .back-btn:hover { background: rgba(255,255,255,0.3); }
-        .page-title { color: #fff; font-size: 24px; font-weight: 700; }
-        .page-subtitle { color: rgba(255,255,255,0.8); font-size: 14px; }
-        .container { max-width: 900px; margin: 0 auto; }
-        .card {
-            background: #fff;
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-        }
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-        .card-title { font-size: 18px; font-weight: 700; color: #1c1c1e; }
-        .badge {
-            background: #667eea;
+        .sidebar-search {
+            margin: 10px 12px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(255,255,255,0.15);
             color: #fff;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        .filter-bar {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .filter-btn {
-            padding: 8px 16px;
-            border: 2px solid #e0e0e0;
-            border-radius: 20px;
-            background: #fff;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            color: #666;
-            transition: all 0.2s;
-        }
-        .filter-btn.active, .filter-btn:hover {
-            background: #667eea;
-            border-color: #667eea;
-            color: #fff;
-        }
-        .search-input {
-            flex: 1;
-            min-width: 200px;
-            padding: 8px 16px;
-            border: 2px solid #e0e0e0;
-            border-radius: 20px;
             font-size: 13px;
             outline: none;
+            width: calc(100% - 24px);
         }
-        .search-input:focus { border-color: #667eea; }
-        .sms-list { display: flex; flex-direction: column; gap: 12px; }
-        .sms-item {
-            background: #f8f9ff;
-            border-radius: 12px;
-            padding: 16px;
-            border-left: 4px solid #667eea;
-            transition: transform 0.1s;
-            cursor: default;
-        }
-        .sms-item:hover { transform: translateX(4px); }
-        .sms-item.ELIGIBILITY { border-left-color: #10b981; background: #f0fdf4; }
-        .sms-item.INELIGIBILITY { border-left-color: #ef4444; background: #fef2f2; }
-        .sms-item.LOAN_APPROVED { border-left-color: #10b981; background: #f0fdf4; }
-        .sms-item.LOAN_FAILED { border-left-color: #f59e0b; background: #fffbeb; }
-        .sms-item.LOAN_PROCESSING { border-left-color: #3b82f6; background: #eff6ff; }
-        .sms-item.DOCUMENT { border-left-color: #f59e0b; background: #fffbeb; }
-        .sms-item.MANUAL { border-left-color: #8b5cf6; background: #faf5ff; }
-        .sms-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 8px;
-        }
-        .sms-meta { display: flex; align-items: center; gap: 10px; }
-        .sms-type-badge {
-            font-size: 11px;
-            font-weight: 700;
-            padding: 3px 8px;
-            border-radius: 6px;
-            background: #667eea;
-            color: #fff;
-        }
-        .sms-type-badge.ELIGIBILITY { background: #10b981; }
-        .sms-type-badge.INELIGIBILITY { background: #ef4444; }
-        .sms-type-badge.LOAN_APPROVED { background: #10b981; }
-        .sms-type-badge.LOAN_FAILED { background: #f59e0b; color: #1c1c1e; }
-        .sms-type-badge.LOAN_PROCESSING { background: #3b82f6; }
-        .sms-type-badge.DOCUMENT { background: #f59e0b; color: #1c1c1e; }
-        .sms-phone { font-size: 13px; font-weight: 600; color: #1c1c1e; }
-        .sms-time { font-size: 12px; color: #999; white-space: nowrap; }
-        .sms-message {
-            font-size: 14px;
-            color: #333;
-            line-height: 1.6;
-            white-space: pre-wrap;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #999;
-        }
-        .empty-state i { font-size: 48px; margin-bottom: 16px; color: #ddd; }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .stat-card {
-            background: #f8f9ff;
-            border-radius: 12px;
-            padding: 16px;
-            text-align: center;
-        }
-        .stat-number { font-size: 28px; font-weight: 700; color: #667eea; }
-        .stat-label { font-size: 12px; color: #999; margin-top: 4px; }
-        .action-bar {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-bottom: 15px;
-        }
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 8px;
+        .sidebar-search::placeholder { color: rgba(255,255,255,0.6); }
+        .client-list { flex: 1; overflow-y: auto; padding: 8px; }
+        .client-item {
+            padding: 12px;
+            border-radius: 10px;
             cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
+            margin-bottom: 4px;
+            transition: background 0.15s;
             display: flex;
             align-items: center;
-            gap: 6px;
-            transition: all 0.2s;
+            gap: 10px;
         }
-        .btn-primary { background: #667eea; color: #fff; }
-        .btn-primary:hover { background: #5568d3; }
+        .client-item:hover { background: rgba(255,255,255,0.15); }
+        .client-item.active { background: rgba(255,255,255,0.25); }
+        .client-avatar {
+            width: 38px; height: 38px; border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; flex-shrink: 0;
+        }
+        .client-info { flex: 1; min-width: 0; }
+        .client-name { color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .client-phone { color: rgba(255,255,255,0.7); font-size: 11px; }
+        .client-badge {
+            background: #ef4444; color: #fff;
+            font-size: 10px; font-weight: 700;
+            padding: 2px 6px; border-radius: 10px;
+            flex-shrink: 0;
+        }
+        .client-time { color: rgba(255,255,255,0.5); font-size: 10px; }
+
+        /* ── MAIN CONTENT ── */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f8f9ff;
+            overflow: hidden;
+        }
+        .main-header {
+            padding: 16px 24px;
+            background: #fff;
+            border-bottom: 1px solid #e8e8e8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .main-title { font-size: 18px; font-weight: 700; color: #1c1c1e; }
+        .main-sub { font-size: 12px; color: #999; margin-top: 2px; }
+        .header-actions { display: flex; gap: 8px; }
+        .btn {
+            padding: 7px 14px; border: none; border-radius: 8px;
+            cursor: pointer; font-size: 12px; font-weight: 600;
+            display: flex; align-items: center; gap: 5px; transition: all 0.2s;
+        }
         .btn-danger { background: #fee2e2; color: #ef4444; }
         .btn-danger:hover { background: #fecaca; }
         .btn-secondary { background: #f0f0f0; color: #666; }
         .btn-secondary:hover { background: #e0e0e0; }
-        .loading { text-align: center; padding: 40px; color: #999; }
-        .loading i { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* ── FILTROS ── */
+        .filter-bar {
+            padding: 10px 24px;
+            background: #fff;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .filter-chip {
+            padding: 5px 12px; border: 1.5px solid #e0e0e0;
+            border-radius: 16px; background: #fff; cursor: pointer;
+            font-size: 12px; font-weight: 600; color: #666; transition: all 0.15s;
+        }
+        .filter-chip.active, .filter-chip:hover {
+            background: #667eea; border-color: #667eea; color: #fff;
+        }
+
+        /* ── LISTA DE SMS ── */
+        .sms-area { flex: 1; overflow-y: auto; padding: 16px 24px; }
+        .sms-item {
+            background: #fff; border-radius: 12px; padding: 14px 16px;
+            margin-bottom: 10px; border-left: 4px solid #667eea;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            transition: transform 0.1s;
+        }
+        .sms-item:hover { transform: translateX(3px); }
+        .sms-item.ELIGIBILITY { border-left-color: #10b981; }
+        .sms-item.INELIGIBILITY { border-left-color: #ef4444; }
+        .sms-item.LOAN_APPROVED { border-left-color: #10b981; }
+        .sms-item.LOAN_FAILED { border-left-color: #f59e0b; }
+        .sms-item.LOAN_PROCESSING { border-left-color: #3b82f6; }
+        .sms-item.DOCUMENT { border-left-color: #f59e0b; }
+        .sms-header-row {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 8px;
+        }
+        .sms-type-pill {
+            font-size: 11px; font-weight: 700; padding: 3px 8px;
+            border-radius: 6px; background: #667eea; color: #fff;
+        }
+        .sms-type-pill.ELIGIBILITY { background: #10b981; }
+        .sms-type-pill.INELIGIBILITY { background: #ef4444; }
+        .sms-type-pill.LOAN_APPROVED { background: #10b981; }
+        .sms-type-pill.LOAN_FAILED { background: #f59e0b; color: #1c1c1e; }
+        .sms-type-pill.LOAN_PROCESSING { background: #3b82f6; }
+        .sms-type-pill.DOCUMENT { background: #f59e0b; color: #1c1c1e; }
+        .sms-time { font-size: 11px; color: #aaa; }
+        .sms-message { font-size: 13px; color: #333; line-height: 1.6; white-space: pre-wrap; }
+        .empty-state { text-align: center; padding: 80px 20px; color: #bbb; }
+        .empty-state i { font-size: 56px; margin-bottom: 16px; display: block; }
+        .empty-state p { font-size: 15px; }
+
+        /* ── ESTADO VAZIO (sem cliente seleccionado) ── */
+        .no-client {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            color: #bbb; text-align: center; padding: 40px;
+        }
+        .no-client i { font-size: 64px; margin-bottom: 20px; color: #ddd; }
+        .no-client h3 { font-size: 18px; color: #999; margin-bottom: 8px; }
+        .no-client p { font-size: 14px; }
+
+        /* ── STATS BAR ── */
+        .stats-bar {
+            padding: 8px 24px;
+            background: #f0f2ff;
+            border-bottom: 1px solid #e0e4ff;
+            display: flex; gap: 20px; flex-wrap: wrap;
+        }
+        .stat-item { font-size: 12px; color: #667eea; font-weight: 600; }
+        .stat-item span { color: #333; }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 640px) {
+            .sidebar { width: 220px; min-width: 180px; }
+        }
     </style>
 </head>
 <body>
-    <div class="page-header">
-        <button class="back-btn" onclick="window.location.href='/'">
-            <i class="fas fa-arrow-left"></i> Voltar
-        </button>
-        <div>
-            <div class="page-title"><i class="fas fa-sms"></i> Caixa de SMS</div>
-            <div class="page-subtitle">Histórico de mensagens enviadas pelo PayJA</div>
+<div class="layout">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="/" class="back-btn"><i class="fas fa-arrow-left"></i> Voltar</a>
+            <div class="sidebar-title">✉️ Caixas de SMS</div>
+            <div class="sidebar-sub">Por cliente</div>
+        </div>
+        <input type="text" class="sidebar-search" id="clientSearch" placeholder="🔍 Pesquisar cliente..." oninput="filterClients()">
+        <div class="client-list" id="clientList">
+            <div style="text-align:center;padding:30px;color:rgba(255,255,255,0.5);">
+                <i class="fas fa-spinner fa-spin"></i> A carregar...
+            </div>
         </div>
     </div>
 
-    <div class="container">
-        <!-- Estatísticas -->
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title"><i class="fas fa-chart-bar"></i> Resumo</span>
-                <button class="btn btn-primary" onclick="loadSms()">
-                    <i class="fas fa-sync-alt"></i> Actualizar
-                </button>
-            </div>
-            <div class="stats-grid" id="statsGrid">
-                <div class="stat-card"><div class="stat-number" id="statTotal">—</div><div class="stat-label">Total SMS</div></div>
-                <div class="stat-card"><div class="stat-number" style="color:#10b981" id="statElig">—</div><div class="stat-label">Elegíveis</div></div>
-                <div class="stat-card"><div class="stat-number" style="color:#ef4444" id="statInelig">—</div><div class="stat-label">Inelegíveis</div></div>
-                <div class="stat-card"><div class="stat-number" style="color:#10b981" id="statApproved">—</div><div class="stat-label">Aprovados</div></div>
+    <!-- MAIN -->
+    <div class="main">
+        <div id="mainContent">
+            <div class="no-client">
+                <i class="fas fa-inbox"></i>
+                <h3>Seleccione um cliente</h3>
+                <p>Clique num cliente na lista à esquerda<br>para ver os seus SMS.</p>
             </div>
         </div>
+    </div>
+</div>
 
-        <!-- Lista de SMS -->
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title"><i class="fas fa-inbox"></i> Mensagens</span>
-                <div style="display:flex;gap:8px;">
-                    <button class="btn btn-secondary" onclick="exportSms()">
-                        <i class="fas fa-download"></i> Exportar
+<script>
+    let allClients = [];
+    let selectedPhone = null;
+    let currentFilter = 'ALL';
+    let currentSms = [];
+
+    const TYPE_ICONS = {
+        ELIGIBILITY: '✅', INELIGIBILITY: '❌', LOAN_APPROVED: '🎉',
+        LOAN_PROCESSING: '⏳', LOAN_FAILED: '⚠️', DOCUMENT: '📄',
+        MANUAL: '✉️', REGISTRATION: '📝', SMS: '📱'
+    };
+
+    function fmt(d) {
+        if (!d) return '—';
+        try {
+            const dt = new Date(d);
+            return dt.toLocaleDateString('pt-MZ') + ' ' + dt.toLocaleTimeString('pt-MZ', { hour: '2-digit', minute: '2-digit' });
+        } catch(e) { return d; }
+    }
+
+    async function loadClients() {
+        try {
+            const res = await fetch('/api/sms/clients');
+            allClients = await res.json();
+            renderClients(allClients);
+        } catch(e) {
+            document.getElementById('clientList').innerHTML =
+                '<div style="color:rgba(255,255,255,0.5);padding:20px;text-align:center;">Erro ao carregar</div>';
+        }
+    }
+
+    function filterClients() {
+        const q = document.getElementById('clientSearch').value.toLowerCase();
+        const filtered = q
+            ? allClients.filter(c => (c.name||'').toLowerCase().includes(q) || (c.msisdn||'').includes(q))
+            : allClients;
+        renderClients(filtered);
+    }
+
+    function renderClients(list) {
+        const el = document.getElementById('clientList');
+        if (!list.length) {
+            el.innerHTML = '<div style="color:rgba(255,255,255,0.5);padding:20px;text-align:center;">Nenhum cliente com SMS</div>';
+            return;
+        }
+        el.innerHTML = list.map(c => {
+            const name = c.name || 'Cliente';
+            const initials = name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+            const isActive = c.msisdn === selectedPhone;
+            const lastTime = c.lastSms ? new Date(c.lastSms).toLocaleTimeString('pt-MZ', {hour:'2-digit',minute:'2-digit'}) : '';
+            return `<div class="client-item ${isActive ? 'active' : ''}" onclick="selectClient('${c.msisdn}', '${name.replace(/'/g,"\\'")}')">
+                <div class="client-avatar">${initials}</div>
+                <div class="client-info">
+                    <div class="client-name">${name}</div>
+                    <div class="client-phone">${c.msisdn}</div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+                    <span class="client-badge">${c.total}</span>
+                    <span class="client-time">${lastTime}</span>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    async function selectClient(phone, name) {
+        selectedPhone = phone;
+        currentFilter = 'ALL';
+        // Actualizar sidebar
+        filterClients();
+        // Carregar SMS do cliente
+        await loadClientSms(phone, name);
+    }
+
+    async function loadClientSms(phone, name) {
+        const main = document.getElementById('mainContent');
+        main.innerHTML = `
+            <div class="main-header">
+                <div>
+                    <div class="main-title">✉️ ${name}</div>
+                    <div class="main-sub">${phone}</div>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="loadClientSms('${phone}','${name.replace(/'/g,"\\'")}')">
+                        <i class="fas fa-sync-alt"></i> Actualizar
                     </button>
-                    <button class="btn btn-danger" onclick="clearSms()">
+                    <button class="btn btn-danger" onclick="clearClientSms('${phone}','${name.replace(/'/g,"\\'")}')">
                         <i class="fas fa-trash"></i> Limpar
                     </button>
                 </div>
             </div>
-
-            <div class="filter-bar">
-                <input type="text" class="search-input" id="searchInput" placeholder="🔍 Pesquisar por número ou mensagem..." oninput="filterSms()">
-                <button class="filter-btn active" data-type="ALL" onclick="setFilter('ALL', this)">Todos</button>
-                <button class="filter-btn" data-type="ELIGIBILITY" onclick="setFilter('ELIGIBILITY', this)">Elegíveis</button>
-                <button class="filter-btn" data-type="INELIGIBILITY" onclick="setFilter('INELIGIBILITY', this)">Inelegíveis</button>
-                <button class="filter-btn" data-type="LOAN_APPROVED" onclick="setFilter('LOAN_APPROVED', this)">Aprovados</button>
-                <button class="filter-btn" data-type="LOAN_PROCESSING" onclick="setFilter('LOAN_PROCESSING', this)">Em Processo</button>
+            <div class="filter-bar" id="filterBar">
+                <span class="filter-chip active" data-type="ALL" onclick="setFilter('ALL',this)">Todos</span>
+                <span class="filter-chip" data-type="ELIGIBILITY" onclick="setFilter('ELIGIBILITY',this)">✅ Elegível</span>
+                <span class="filter-chip" data-type="INELIGIBILITY" onclick="setFilter('INELIGIBILITY',this)">❌ Inelegível</span>
+                <span class="filter-chip" data-type="LOAN_APPROVED" onclick="setFilter('LOAN_APPROVED',this)">🎉 Aprovado</span>
+                <span class="filter-chip" data-type="LOAN_PROCESSING" onclick="setFilter('LOAN_PROCESSING',this)">⏳ Em Processo</span>
+                <span class="filter-chip" data-type="DOCUMENT" onclick="setFilter('DOCUMENT',this)">📄 Documento</span>
             </div>
+            <div class="stats-bar" id="statsBar">A carregar...</div>
+            <div class="sms-area" id="smsArea"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>A carregar SMS...</p></div></div>
+        `;
 
-            <div class="action-bar">
-                <span id="countLabel" style="font-size:13px;color:#999;align-self:center;"></span>
-            </div>
-
-            <div id="smsList" class="sms-list">
-                <div class="loading"><i class="fas fa-spinner"></i> A carregar SMS...</div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let allSms = [];
-        let currentFilter = 'ALL';
-
-        function formatDate(dateStr) {
-            if (!dateStr) return '—';
-            try {
-                const d = new Date(dateStr);
-                return d.toLocaleDateString('pt-MZ') + ' ' + d.toLocaleTimeString('pt-MZ', { hour: '2-digit', minute: '2-digit' });
-            } catch(e) { return dateStr; }
-        }
-
-        function getTypeIcon(type) {
-            const icons = {
-                ELIGIBILITY: '✅',
-                INELIGIBILITY: '❌',
-                LOAN_APPROVED: '🎉',
-                LOAN_FAILED: '⚠️',
-                LOAN_PROCESSING: '⏳',
-                DOCUMENT: '📄',
-                MANUAL: '✉️',
-                REGISTRATION: '📝',
-                SMS: '📱'
-            };
-            return icons[type] || '📱';
-        }
-
-        async function loadSms() {
-            try {
-                const res = await fetch('/api/sms/logs');
-                allSms = await res.json();
-                allSms = allSms.sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
-                updateStats();
-                renderSms();
-            } catch(e) {
-                document.getElementById('smsList').innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-exclamation-circle"></i>
-                        <p>Erro ao carregar SMS: ${e.message}</p>
-                    </div>`;
-            }
-        }
-
-        function updateStats() {
-            document.getElementById('statTotal').textContent = allSms.length;
-            document.getElementById('statElig').textContent = allSms.filter(s => s.type === 'ELIGIBILITY').length;
-            document.getElementById('statInelig').textContent = allSms.filter(s => s.type === 'INELIGIBILITY').length;
-            document.getElementById('statApproved').textContent = allSms.filter(s => s.type === 'LOAN_APPROVED').length;
-        }
-
-        function setFilter(type, btn) {
-            currentFilter = type;
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+        try {
+            const res = await fetch(`/api/sms/logs?phone=${encodeURIComponent(phone)}&limit=200`);
+            currentSms = await res.json();
+            renderSmsStats();
             renderSms();
+        } catch(e) {
+            document.getElementById('smsArea').innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Erro: ${e.message}</p></div>`;
         }
+    }
 
-        function filterSms() {
-            renderSms();
+    function renderSmsStats() {
+        const total = currentSms.length;
+        const approved = currentSms.filter(s => s.type === 'LOAN_APPROVED').length;
+        const elig = currentSms.filter(s => s.type === 'ELIGIBILITY').length;
+        const processing = currentSms.filter(s => s.type === 'LOAN_PROCESSING').length;
+        const bar = document.getElementById('statsBar');
+        if (bar) bar.innerHTML = `
+            <span class="stat-item">Total: <span>${total}</span></span>
+            <span class="stat-item">Elegibilidade: <span>${elig}</span></span>
+            <span class="stat-item">Em Processo: <span>${processing}</span></span>
+            <span class="stat-item">Aprovados: <span>${approved}</span></span>
+        `;
+    }
+
+    function setFilter(type, el) {
+        currentFilter = type;
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        if (el) el.classList.add('active');
+        renderSms();
+    }
+
+    function renderSms() {
+        const area = document.getElementById('smsArea');
+        if (!area) return;
+        let list = currentSms;
+        if (currentFilter !== 'ALL') {
+            list = list.filter(s => s.type === currentFilter);
         }
-
-        function renderSms() {
-            const search = document.getElementById('searchInput').value.toLowerCase();
-            let filtered = allSms;
-
-            if (currentFilter !== 'ALL') {
-                filtered = filtered.filter(s => s.type === currentFilter);
-            }
-            if (search) {
-                filtered = filtered.filter(s =>
-                    (s.msisdn || s.phoneNumber || '').includes(search) ||
-                    (s.message || '').toLowerCase().includes(search)
-                );
-            }
-
-            document.getElementById('countLabel').textContent = `${filtered.length} mensagem(ns)`;
-
-            if (!filtered.length) {
-                document.getElementById('smsList').innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-inbox"></i>
-                        <p>Nenhum SMS encontrado.</p>
-                    </div>`;
-                return;
-            }
-
-            document.getElementById('smsList').innerHTML = filtered.map(sms => `
-                <div class="sms-item ${sms.type || ''}">
-                    <div class="sms-header">
-                        <div class="sms-meta">
-                            <span class="sms-type-badge ${sms.type || ''}">${getTypeIcon(sms.type)} ${sms.type || 'SMS'}</span>
-                            <span class="sms-phone"><i class="fas fa-phone" style="font-size:11px;margin-right:4px;"></i>${sms.msisdn || sms.phoneNumber || '—'}</span>
-                        </div>
-                        <span class="sms-time"><i class="fas fa-clock" style="font-size:10px;margin-right:3px;"></i>${formatDate(sms.sentAt)}</span>
-                    </div>
-                    <div class="sms-message">${(sms.message || '').replace(/</g, '&lt;')}</div>
+        if (!list.length) {
+            area.innerHTML = `<div class="empty-state"><i class="fas fa-inbox"></i><p>Nenhum SMS ${currentFilter !== 'ALL' ? 'deste tipo' : ''}.</p></div>`;
+            return;
+        }
+        area.innerHTML = list.map(sms => {
+            const icon = TYPE_ICONS[sms.type] || '📱';
+            return `<div class="sms-item ${sms.type || ''}">
+                <div class="sms-header-row">
+                    <span class="sms-type-pill ${sms.type || ''}">${icon} ${sms.type || 'SMS'}</span>
+                    <span class="sms-time"><i class="fas fa-clock" style="font-size:10px;margin-right:3px;"></i>${fmt(sms.sentAt)}</span>
                 </div>
-            `).join('');
-        }
+                <div class="sms-message">${(sms.message || '').replace(/</g, '&lt;')}</div>
+            </div>`;
+        }).join('');
+    }
 
-        async function clearSms() {
-            if (!confirm('Tem a certeza que quer apagar todos os SMS?')) return;
-            try {
-                await fetch('/api/sms/logs', { method: 'DELETE' });
-                allSms = [];
-                updateStats();
-                renderSms();
-            } catch(e) {
-                alert('Erro ao limpar SMS: ' + e.message);
-            }
+    async function clearClientSms(phone, name) {
+        if (!confirm(`Apagar todos os SMS de ${name}?`)) return;
+        try {
+            await fetch(`/api/sms/logs/client/${encodeURIComponent(phone)}`, { method: 'DELETE' });
+            currentSms = [];
+            renderSmsStats();
+            renderSms();
+            await loadClients();
+        } catch(e) {
+            alert('Erro: ' + e.message);
         }
+    }
 
-        function exportSms() {
-            const data = JSON.stringify(allSms, null, 2);
-            const blob = new Blob([data], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `sms-payja-${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
+    // Carregar ao iniciar
+    loadClients();
+    // Auto-actualizar lista de clientes a cada 15s
+    setInterval(() => {
+        loadClients();
+        if (selectedPhone) {
+            const client = allClients.find(c => c.msisdn === selectedPhone);
+            if (client) loadClientSms(selectedPhone, client.name || selectedPhone);
         }
+    }, 15000);
 
-        // Carregar ao iniciar e actualizar a cada 10s
-        loadSms();
-        setInterval(loadSms, 10000);
-    </script>
+    // Verificar se há um ?phone= na URL para abrir directamente
+    const urlParams = new URLSearchParams(window.location.search);
+    const phoneParam = urlParams.get('phone');
+    if (phoneParam) {
+        setTimeout(async () => {
+            await loadClients();
+            const client = allClients.find(c => c.msisdn === phoneParam || c.msisdn.endsWith(phoneParam));
+            if (client) selectClient(client.msisdn, client.name || client.msisdn);
+            else selectClient(phoneParam, phoneParam);
+        }, 500);
+    }
+</script>
 </body>
 </html>

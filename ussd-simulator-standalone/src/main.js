@@ -316,6 +316,61 @@ async function processLoanRequest(msisdn, amount, plan, customerInfo) {
   }
 }
 
+
+// Contar SMS por número (para badge)
+app.get('/api/sms/count', async (req, res) => {
+  try {
+    const { phone } = req.query;
+    let row;
+    if (phone) {
+      let p = String(phone).replace(/\D/g, '');
+      if (p.length === 9) p = '258' + p;
+      else if (p.length === 8) p = '2588' + p;
+      row = await db.get('SELECT COUNT(*) as total FROM sms_logs WHERE msisdn = ?', [p]);
+    } else {
+      row = await db.get('SELECT COUNT(*) as total FROM sms_logs');
+    }
+    res.json({ total: row?.total || 0 });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Listar todos os clientes com SMS (para sms.html)
+app.get('/api/sms/clients', async (req, res) => {
+  try {
+    const rows = await db.all(`
+      SELECT s.msisdn,
+             c.firstName as name,
+             COUNT(s.id) as total,
+             MAX(s.sentAt) as lastSms,
+             SUM(CASE WHEN s.type='LOAN_APPROVED' THEN 1 ELSE 0 END) as approved,
+             SUM(CASE WHEN s.type='ELIGIBILITY' THEN 1 ELSE 0 END) as eligible,
+             SUM(CASE WHEN s.type='INELIGIBILITY' THEN 1 ELSE 0 END) as ineligible
+      FROM sms_logs s
+      LEFT JOIN customers c ON c.msisdn = s.msisdn
+      GROUP BY s.msisdn
+      ORDER BY lastSms DESC
+    `);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Apagar SMS de um número específico
+app.delete('/api/sms/logs/client/:phone', async (req, res) => {
+  try {
+    let p = String(req.params.phone).replace(/\D/g, '');
+    if (p.length === 9) p = '258' + p;
+    else if (p.length === 8) p = '2588' + p;
+    await db.run('DELETE FROM sms_logs WHERE msisdn = ?', [p]);
+    res.json({ success: true, message: `SMS do número ${p} apagados` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // =============================================
 // ROTAS ESTÁTICAS
 // =============================================
@@ -439,7 +494,20 @@ app.post('/api/customers/register', async (req, res) => {
 // =============================================
 app.get('/api/sms/logs', async (req, res) => {
   try {
-    const logs = await db.all('SELECT * FROM sms_logs ORDER BY sentAt DESC LIMIT 100');
+    const { phone, limit = 100 } = req.query;
+    let logs;
+    if (phone) {
+      // Normalizar número
+      let p = String(phone).replace(/\D/g, '');
+      if (p.length === 9) p = '258' + p;
+      else if (p.length === 8) p = '2588' + p;
+      logs = await db.all(
+        'SELECT * FROM sms_logs WHERE msisdn = ? ORDER BY sentAt DESC LIMIT ?',
+        [p, parseInt(limit)]
+      );
+    } else {
+      logs = await db.all('SELECT * FROM sms_logs ORDER BY sentAt DESC LIMIT ?', [parseInt(limit)]);
+    }
     res.json(logs);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -448,7 +516,19 @@ app.get('/api/sms/logs', async (req, res) => {
 
 app.get('/api/sms-logs', async (req, res) => {
   try {
-    const logs = await db.all('SELECT * FROM sms_logs ORDER BY sentAt DESC LIMIT 100');
+    const { phone, limit = 100 } = req.query;
+    let logs;
+    if (phone) {
+      let p = String(phone).replace(/\D/g, '');
+      if (p.length === 9) p = '258' + p;
+      else if (p.length === 8) p = '2588' + p;
+      logs = await db.all(
+        'SELECT * FROM sms_logs WHERE msisdn = ? ORDER BY sentAt DESC LIMIT ?',
+        [p, parseInt(limit)]
+      );
+    } else {
+      logs = await db.all('SELECT * FROM sms_logs ORDER BY sentAt DESC LIMIT ?', [parseInt(limit)]);
+    }
     res.json(logs);
   } catch (err) {
     res.status(500).json({ error: err.message });
