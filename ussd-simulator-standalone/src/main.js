@@ -559,6 +559,72 @@ app.get('/api/ussd/session/:sessionId', async (req, res) => {
 });
 
 // POST /api/ussd/session — iniciar sessão e verificar elegibilidade no DB local
+// =============================================
+// VERIFICAR ELEGIBILIDADE SEM INICIAR USSD (chamado ao digitar número)
+// =============================================
+app.post('/api/check-eligibility', async (req, res) => {
+  try {
+    const { phoneNumber } = req.body;
+    if (!phoneNumber) return res.status(400).json({ error: 'phoneNumber é obrigatório' });
+    let phone = String(phoneNumber).replace(/\D/g, '');
+    if (phone.length === 9) phone = '258' + phone;
+    else if (phone.length === 8) phone = '2588' + phone;
+
+    const customer = await db.get('SELECT * FROM customers WHERE msisdn = ?', [phone]);
+
+    if (customer && customer.status === 'approved' && customer.isActive && customer.customerLimit > 0) {
+      const limit = customer.customerLimit;
+      const smsMsg = `PayJA: Olá ${customer.firstName}! O seu número está pré-aprovado para crédito até ${fmt(limit)} MZN. Marque *299# para solicitar.`;
+      await logSms(phone, smsMsg, 'ELIGIBILITY');
+      return res.json({
+        eligible: true,
+        limit,
+        customerName: customer.firstName,
+        phone,
+        sms: smsMsg
+      });
+    }
+
+    // Verificar se é questão de documento desactualizado (banco mock)
+    let motivoDoc = false;
+    let motivoTexto = 'Cliente não encontrado no sistema PayJA.';
+    try {
+      const bankRes = await axios.post(`${BANCO_MOCK_API_URL}/validacao/consultar`, { telefone: phone }, { timeout: 5000 });
+      if (bankRes.data) {
+        const motivo = bankRes.data.motivo || '';
+        if (motivo.toLowerCase().includes('document') || motivo.toLowerCase().includes('bi ') || motivo.toLowerCase().includes('nuit') || motivo.toLowerCase().includes('expirad') || motivo.toLowerCase().includes('desactual')) {
+          motivoDoc = true;
+          motivoTexto = motivo;
+        } else if (motivo) {
+          motivoTexto = motivo;
+        }
+      }
+    } catch(e) {
+      // banco mock indisponível
+    }
+
+    let smsMsg;
+    if (motivoDoc) {
+      smsMsg = `PayJA: O seu pedido não pode ser processado. Motivo: ${motivoTexto}. Por favor dirija-se ao balcão Nedbank mais próximo para renovar o seu documento. Obrigado.`;
+      await logSms(phone, smsMsg, 'DOCUMENT');
+    } else {
+      smsMsg = `PayJA: Lamentamos, o número ${phone} não está elegível para crédito. Motivo: ${motivoTexto} Para mais informações ligue 800-PAYJA.`;
+      await logSms(phone, smsMsg, 'INELIGIBILITY');
+    }
+
+    return res.json({
+      eligible: false,
+      documentIssue: motivoDoc,
+      reason: motivoTexto,
+      phone,
+      sms: smsMsg
+    });
+  } catch (err) {
+    console.error('Erro check-eligibility:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/ussd/session', async (req, res) => {
   try {
     const { phoneNumber } = req.body;
