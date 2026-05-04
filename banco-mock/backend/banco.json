@@ -11,7 +11,7 @@
       "numero_conta": "0001000000001",
       "tipo_conta": "SALARIO",
       "status_conta": "ATIVA",
-      "saldo": 25000,
+      "saldo": 7000,
       "renda_mensal": 35000,
       "salario_domiciliado": true,
       "tipo_cliente": "ASSALARIADO",
@@ -22,7 +22,7 @@
       "score_credito": 750,
       "historico_pagamentos": "BOM",
       "criado_em": "2025-02-26T10:29:08.108Z",
-      "atualizado_em": "2026-03-23T18:55:03.843Z",
+      "atualizado_em": "2026-05-04T08:59:06.491Z",
       "payja_status": "APROVADO",
       "payja_rejection_reason": null,
       "payja_limit": 14000,
@@ -321,7 +321,7 @@
       "numero_conta": "0001000000010",
       "tipo_conta": "SALARIO",
       "status_conta": "ATIVA",
-      "saldo": 85000,
+      "saldo": 80000,
       "renda_mensal": 120000,
       "salario_domiciliado": true,
       "tipo_cliente": "ASSALARIADO",
@@ -332,7 +332,7 @@
       "score_credito": 950,
       "historico_pagamentos": "EXCELENTE",
       "criado_em": "2016-02-26T10:29:08.109Z",
-      "atualizado_em": "2026-03-23T18:55:03.965Z",
+      "atualizado_em": "2026-05-04T09:01:14.274Z",
       "payja_status": "APROVADO",
       "payja_rejection_reason": null,
       "payja_limit": 60000,
@@ -684,7 +684,44 @@
       "payja_decided_at": "2026-05-03T18:56:50.414Z"
     }
   ],
-  "transacoes": [],
+  "transacoes": [
+    {
+      "id": "2b92d8c4-b869-40e9-b318-e4d8fe1a8632",
+      "cliente_id": "59004a6e-38c5-48d4-b4a0-4f1d59a32c46",
+      "tipo": "DEBITO",
+      "valor": 10000,
+      "descricao": "Crédito PayJA - 4 anos - 563,33 MZN/mês",
+      "origem": "0001000000001",
+      "destino": "258841234567",
+      "status": "CONCLUIDO",
+      "referencia_externa": "PAYJA-1777884357674",
+      "criado_em": "2026-05-04T08:45:57.679Z"
+    },
+    {
+      "id": "d95ca984-dd8f-4342-9aea-7816cfb063b3",
+      "cliente_id": "59004a6e-38c5-48d4-b4a0-4f1d59a32c46",
+      "tipo": "DEBITO",
+      "valor": 8000,
+      "descricao": "Crédito PayJA - 4 anos - 450,67 MZN/mês",
+      "origem": "0001000000001",
+      "destino": "258841234567",
+      "status": "CONCLUIDO",
+      "referencia_externa": "PAYJA-1777885146486",
+      "criado_em": "2026-05-04T08:59:06.490Z"
+    },
+    {
+      "id": "94147303-3b8b-4d97-b135-48768f6c245a",
+      "cliente_id": "9a65cebf-9944-42c1-8f59-b8ff39690cf3",
+      "tipo": "DEBITO",
+      "valor": 5000,
+      "descricao": "Crédito PayJA - 4 anos - 281,67 MZN/mês",
+      "origem": "0001000000010",
+      "destino": "258840123456",
+      "status": "CONCLUIDO",
+      "referencia_externa": "PAYJA-1777885274270",
+      "criado_em": "2026-05-04T09:01:14.272Z"
+    }
+  ],
   "validacoes": [
     {
       "id": "c4bd8bd4-1203-44e3-a453-d3fe602a65b3",
@@ -1087,12 +1124,49 @@
       "criado_em": "2026-03-23T18:55:04.076Z"
     }
   ],
-  "desembolsos": [],
+  "desembolsos": [
+    {
+      "id": "4a46dcc5-69ce-405c-937d-b1bd69d960d3",
+      "cliente_id": "59004a6e-38c5-48d4-b4a0-4f1d59a32c46",
+      "transacao_id": "2b92d8c4-b869-40e9-b318-e4d8fe1a8632",
+      "valor": 10000,
+      "numero_emola": "258841234567",
+      "status": "CONCLUIDO",
+      "referencia_payja": "PAYJA-1777884357674",
+      "processado_em": "2026-05-04T08:45:57.680Z",
+      "tentativas": 0,
+      "criado_em": "2026-05-04T08:45:57.680Z"
+    },
+    {
+      "id": "6e7da3ca-9928-413a-8e7c-65f7fb878e0d",
+      "cliente_id": "59004a6e-38c5-48d4-b4a0-4f1d59a32c46",
+      "transacao_id": "d95ca984-dd8f-4342-9aea-7816cfb063b3",
+      "valor": 8000,
+      "numero_emola": "258841234567",
+      "status": "CONCLUIDO",
+      "referencia_payja": "PAYJA-1777885146486",
+      "processado_em": "2026-05-04T08:59:06.491Z",
+      "tentativas": 0,
+      "criado_em": "2026-05-04T08:59:06.491Z"
+    },
+    {
+      "id": "6fc14fee-887f-44d4-a729-77b5e390ff9d",
+      "cliente_id": "9a65cebf-9944-42c1-8f59-b8ff39690cf3",
+      "transacao_id": "94147303-3b8b-4d97-b135-48768f6c245a",
+      "valor": 5000,
+      "numero_emola": "258840123456",
+      "status": "CONCLUIDO",
+      "referencia_payja": "PAYJA-1777885274270",
+      "processado_em": "2026-05-04T09:01:14.273Z",
+      "tentativas": 0,
+      "criado_em": "2026-05-04T09:01:14.273Z"
+    }
+  ],
   "emprestimos": [],
   "pagamentos": [],
   "consultas_capacidade": [],
   "metrics": {
-    "last_payja_pull_at": "2026-05-04T08:31:12.445Z",
+    "last_payja_pull_at": "2026-05-04T09:02:12.508Z",
     "last_payja_loans_sync_at": "2026-02-27T08:59:46.468Z"
   },
   "payja_decisions": []
