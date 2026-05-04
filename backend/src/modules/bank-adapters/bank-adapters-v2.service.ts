@@ -1,4 +1,6 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../../prisma.service';
 import { UniversalBankAdapter } from './adapters/universal.adapter';
 
@@ -44,7 +46,7 @@ export class BankAdaptersService {
   private readonly logger = new Logger(BankAdaptersService.name);
   private adapters: Map<string, UniversalBankAdapter> = new Map();
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private readonly http: HttpService) {}
 
   /**
    * Inicializar adaptadores carregando bancos do banco de dados
@@ -173,7 +175,7 @@ export class BankAdaptersService {
           data: {
             status: 'DISBURSED',
             disbursedAt: response.disbursedAt || new Date(),
-            transactionId: response.transactionId,
+            // transactionId removed - not in schema
           },
         });
         // Registrar transação
@@ -247,7 +249,7 @@ export class BankAdaptersService {
         changes: JSON.stringify({
           bankCode: request.bankCode,
           amount: request.amount,
-          transactionId: response.transactionId,
+          // transactionId removed - not in schema
         }),
       },
     });
@@ -449,4 +451,27 @@ export class BankAdaptersService {
       this.logger.warn(`Erro ao atualizar estatísticas do banco ${bankCode}`);
     }
   }
+  /**
+   * Testar conexão com um banco parceiro
+   */
+  async testConnection(bankCode: string) {
+    try {
+      const bankBase = process.env.BANK_BASE_URL || 'http://216.128.152.177:4500';
+      const response = await firstValueFrom(this.http.get(`${bankBase}/api/health`));
+      return {
+        success: true,
+        bankCode,
+        status: 'online',
+        data: (response as any).data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        bankCode,
+        status: 'offline',
+        error: error.message,
+      };
+    }
+  }
+
 }

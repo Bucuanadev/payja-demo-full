@@ -7,19 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Admin {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      String   @default("OPERATOR")
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("admins")
-}
-
 model Customer {
   id              String          @id @default(uuid())
   phoneNumber     String          @unique
@@ -39,22 +26,21 @@ model Customer {
   verified        Boolean         @default(false)
   blocked         Boolean         @default(false)
   rejectionReason String?
-  status          String          @default("PENDING") // PENDING, APPROVED, REJECTED
+  status          String          @default("PENDING")
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   lastAccess      DateTime?
   creditLimit     Float?
   email           String?
   creditScore     Int?
-  bankGhW_validadeBI  DateTime?
-  bankGhW_saldo       Float?
-  bankGhW_dividaTotal  Float?
+  bankGhW_validadeBI    DateTime?
+  bankGhW_saldo         Float?
+  bankGhW_dividaTotal   Float?
   bankGhW_incumprimento String?
   accountNumber   String?
   accountType     String?
   loans           Loan[]
   scoringResults  ScoringResult[]
-
   @@map("customers")
 }
 
@@ -66,27 +52,35 @@ model UssdSession {
   state       String?   @default("{}")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
   @@map("ussd_sessions")
 }
 
 model Loan {
-  id            String         @id @default(uuid())
-  customerId    String
-  amount        Float
-  term          Int
-  interestRate  Float
-  status        String         @default("PENDING")
-  scoringId     String?        @unique
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  disbursedAt   DateTime?
-  dueDate       DateTime?
-  scoring       ScoringResult? @relation(fields: [scoringId], references: [id])
-  customer      Customer       @relation(fields: [customerId], references: [id])
-  payments      Payment[]
-  transactions  Transaction[]
-
+  id              String         @id @default(uuid())
+  customerId      String
+  amount          Float
+  term            Int            @default(1)
+  termMonths      Int?
+  interestRate    Float          @default(15)
+  totalAmount     Float?
+  monthlyPayment  Float?
+  bankCommission  Float?
+  payjaCommission Float?
+  emolaCommission Float?
+  purpose         String?
+  bankCode        String?
+  bankName        String?
+  rejectedReason  String?
+  status          String         @default("PENDING")
+  scoringId       String?        @unique
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  disbursedAt     DateTime?
+  dueDate         DateTime?
+  scoring         ScoringResult? @relation(fields: [scoringId], references: [id])
+  customer        Customer       @relation(fields: [customerId], references: [id])
+  payments        Payment[]
+  transactions    Transaction[]
   @@map("loans")
 }
 
@@ -101,7 +95,6 @@ model ScoringResult {
   calculatedAt DateTime @default(now())
   loan         Loan?
   customer     Customer @relation(fields: [customerId], references: [id])
-
   @@map("scoring_results")
 }
 
@@ -117,7 +110,6 @@ model Payment {
   createdAt     DateTime      @default(now())
   installments  Installment[]
   loan          Loan          @relation(fields: [loanId], references: [id])
-
   @@map("payments")
 }
 
@@ -132,7 +124,6 @@ model AuditLog {
   ipAddress String?
   userAgent String?
   createdAt DateTime @default(now())
-
   @@map("audit_logs")
 }
 
@@ -151,7 +142,6 @@ model Transaction {
   processedAt DateTime?
   completedAt DateTime?
   loan        Loan?     @relation(fields: [loanId], references: [id])
-
   @@map("transactions")
 }
 
@@ -170,7 +160,6 @@ model BankValidation {
   errorMessage   String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
-
   @@map("bank_validations")
 }
 
@@ -182,7 +171,6 @@ model SystemConfig {
   category    String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
   @@map("system_configs")
 }
 
@@ -202,7 +190,6 @@ model Installment {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   payment           Payment?  @relation(fields: [paymentId], references: [id])
-
   @@map("installments")
 }
 
@@ -216,7 +203,6 @@ model SmsLog {
   deliveredAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
   @@index([phoneNumber])
   @@index([createdAt])
   @@map("sms_logs")
@@ -248,6 +234,17 @@ model BankPartner {
   failedRequests       Int       @default(0)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
-
   @@map("bank_partners")
+}
+
+model Admin {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("OPERATOR")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("admins")
 }

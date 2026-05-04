@@ -34,7 +34,7 @@ export class InstallmentService {
     const installments = [];
     const monthlyInterestRate = loan.interestRate / 100 / 12;
     const principal = loan.amount;
-    const months = loan.termMonths;
+    const months = loan.termMonths || loan.term;
 
     // Calcular pagamento mensal usando fórmula de amortização
     const monthlyPayment =
@@ -64,7 +64,7 @@ export class InstallmentService {
 
     return {
       loanId,
-      totalAmount: loan.totalAmount,
+      totalAmount: loan.totalAmount || loan.amount,
       termMonths: months,
       monthlyPayment: Math.round(monthlyPayment * 100) / 100,
       installments,

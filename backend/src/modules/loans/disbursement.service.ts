@@ -68,7 +68,7 @@ export class DisbursementService {
         description: `Comissão do banco ${request.bankCode}`,
         from: 'PAYJA',
         to: 'BANK',
-        amount: loan.amount * (loan.bankCommission || 0.08),
+        amount: loan.amount * ((loan as any).bankCommission || 0.08),
         externalRef: `COMM-BANK-${Date.now()}`,
       });
       transactions.push(bankCommission);
@@ -80,7 +80,7 @@ export class DisbursementService {
         description: 'Comissão PayJA',
         from: 'PAYJA',
         to: 'PAYJA',
-        amount: loan.amount * (loan.payjaCommission || 0.03),
+        amount: loan.amount * ((loan as any).payjaCommission || 0.03),
         externalRef: `COMM-PAYJA-${Date.now()}`,
       });
       transactions.push(payjaCommission);
@@ -104,7 +104,7 @@ export class DisbursementService {
         description: 'Comissão E-Mola',
         from: 'EMOLA',
         to: 'EMOLA',
-        amount: loan.amount * (loan.emolaCommission || 0.03),
+        amount: loan.amount * ((loan as any).emolaCommission || 0.03),
         externalRef: `COMM-EMOLA-${Date.now()}`,
       });
       transactions.push(emolaCommission);

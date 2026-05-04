@@ -29,6 +29,7 @@ export class LoansService {
         amount: data.amount,
         interestRate: 15,
         termMonths: data.termMonths,
+        term: data.termMonths || 1,
         purpose: data.purpose,
         totalAmount: data.totalAmount,
         monthlyPayment: data.monthlyPayment,
