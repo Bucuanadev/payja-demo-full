@@ -22,7 +22,7 @@
       "score_credito": 750,
       "historico_pagamentos": "BOM",
       "criado_em": "2025-02-26T10:29:08.108Z",
-      "atualizado_em": "2026-05-04T09:18:52.102Z",
+      "atualizado_em": "2026-05-04T09:42:45.065Z",
       "payja_status": "APROVADO",
       "payja_rejection_reason": null,
       "payja_limit": 14000,
@@ -1243,10 +1243,23 @@
     }
   ],
   "emprestimos": [],
-  "pagamentos": [],
+  "pagamentos": [
+    {
+      "id": "d796bce8-b701-473b-b068-a258418daab6",
+      "cliente_id": "59004a6e-38c5-48d4-b4a0-4f1d59a32c46",
+      "nuit": "100234567",
+      "numero_conta": "0001000000001",
+      "valor": 5000,
+      "tipo": "PRESTACAO",
+      "descricao": "Pagamento de prestação",
+      "data": "2026-05-04T09:42:45.064Z",
+      "status": "PROCESSADO",
+      "criado_em": "2026-05-04T09:42:45.064Z"
+    }
+  ],
   "consultas_capacidade": [],
   "metrics": {
-    "last_payja_pull_at": "2026-05-04T09:41:09.469Z",
+    "last_payja_pull_at": "2026-05-04T10:03:45.308Z",
     "last_payja_loans_sync_at": "2026-02-27T08:59:46.468Z"
   },
   "payja_decisions": []

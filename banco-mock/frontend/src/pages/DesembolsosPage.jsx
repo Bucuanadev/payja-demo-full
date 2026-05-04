@@ -52,19 +52,19 @@ const DesembolsosPage = () => {
   const loadDesembolsos = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/payja-loans');
-      const data = response.data?.data || [];
+      const response = await api.get('/desembolso/historico');
+      const data = response.data?.desembolsos || response.data?.data || [];
       const mapped = data.map((d) => ({
         id: d.id,
-        nome_completo: d.cliente || 'N/A',
-        numero_conta: d.conta || '0000000000',
+        nome_completo: d.nome_completo || d.cliente || 'N/A',
+        numero_conta: d.numero_conta || d.conta || '0000000000',
         valor: Number(d.valor) || 0,
-        numero_emola: d.numeroEmola || '-',
-        referencia_payja: d.referenciaPayJA || d.loanId || '-',
+        numero_emola: d.numero_emola || d.numeroEmola || '-',
+        referencia_payja: d.referencia_payja || d.referenciaPayJA || d.loanId || '-',
         status: d.status || 'PENDENTE',
         tentativas: d.tentativas ?? 0,
-        criado_em: d.dataCriacao,
-        processado_em: d.dataProcessamento,
+        criado_em: d.criado_em || d.dataCriacao,
+        processado_em: d.processado_em || d.dataProcessamento,
       }));
       setDesembolsos(mapped);
     } catch (error) {
