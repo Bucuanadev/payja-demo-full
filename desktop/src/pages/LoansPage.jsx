@@ -15,8 +15,41 @@ function LoansPage() {
 
   const loadLoans = async () => {
     try {
-      const response = await api.get('/loans');
-      setLoans(response.data);
+      // Buscar do PayJA DB (autenticado)
+      let payjaLoans = [];
+      try {
+        const response = await api.get('/loans');
+        payjaLoans = Array.isArray(response.data) ? response.data : [];
+      } catch (_e) {}
+      // Buscar do Simulador (público)
+      let simLoans = [];
+      try {
+        const simRes = await fetch('http://216.128.152.177:3001/api/simulator/loans');
+        const simData = await simRes.json();
+        simLoans = simData.loans || [];
+      } catch (_e) {}
+      // Combinar: PayJA tem prioridade
+      const payjaIds = new Set(payjaLoans.map(l => l.id));
+      const simMapped = simLoans
+        .filter(l => !l.payjaLoanId || !payjaIds.has(l.payjaLoanId))
+        .map(l => ({
+          id: l.payjaLoanId || ('sim-' + l.id),
+          customer: { phoneNumber: l.msisdn, name: l.customerName },
+          amount: l.amount,
+          termMonths: l.termMonths,
+          totalAmount: l.totalAmount,
+          monthlyPayment: l.monthlyPayment,
+          status: l.status === 'APPROVED' ? 'DISBURSED' : (l.status === 'PROCESSING' ? 'ANALYZING' : l.status),
+          createdAt: l.createdAt,
+          source: 'SIMULATOR',
+          scoring: null,
+        }));
+      const combined = [
+        ...payjaLoans.map(l => ({ ...l, source: 'PAYJA' })),
+        ...simMapped
+      ];
+      combined.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setLoans(combined);
     } catch (error) {
       message.error('Erro ao carregar empréstimos');
     } finally {
