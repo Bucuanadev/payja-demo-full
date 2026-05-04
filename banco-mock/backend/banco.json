@@ -1283,7 +1283,7 @@
   ],
   "consultas_capacidade": [],
   "metrics": {
-    "last_payja_pull_at": "2026-05-04T10:22:28.485Z",
+    "last_payja_pull_at": "2026-05-04T10:24:23.486Z",
     "last_payja_loans_sync_at": "2026-02-27T08:59:46.468Z"
   },
   "payja_decisions": []

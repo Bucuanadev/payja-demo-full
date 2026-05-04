@@ -1069,7 +1069,7 @@ app.post('/api/payja/loan-update', async (req, res) => {
 app.get('/api/simulator/loans', async (req, res) => {
   try {
     const { status, msisdn, limit = 100 } = req.query;
-    let query = 'SELECT lr.*, c.firstName, c.lastName FROM loan_requests lr LEFT JOIN customers c ON lr.msisdn = c.msisdn';
+    let query = 'SELECT lr.*, c.firstName FROM loan_requests lr LEFT JOIN customers c ON lr.msisdn = c.msisdn';
     const params = [];
     const conditions = [];
     if (status) { conditions.push('lr.status = ?'); params.push(status); }
@@ -1083,7 +1083,7 @@ app.get('/api/simulator/loans', async (req, res) => {
       loans: loans.map(l => ({
         id: l.id,
         msisdn: l.msisdn,
-        customerName: [l.firstName, l.lastName].filter(Boolean).join(' ') || l.msisdn,
+        customerName: l.firstName || l.msisdn,
         amount: l.amount,
         termMonths: l.termMonths,
         termLabel: l.termLabel,
