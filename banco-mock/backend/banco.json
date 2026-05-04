@@ -661,7 +661,7 @@
       "numero_conta": "0001000000020",
       "tipo_conta": "SALARIO",
       "status_conta": "ATIVA",
-      "saldo": 100000,
+      "saldo": 96000,
       "renda_mensal": 10000,
       "salario_domiciliado": true,
       "tipo_cliente": "ASSALARIADO",
@@ -672,7 +672,7 @@
       "score_credito": 800,
       "historico_pagamentos": "REGULAR",
       "criado_em": "2022-10-26T10:29:08.109Z",
-      "atualizado_em": "2026-03-23T18:55:04.075Z",
+      "atualizado_em": "2026-05-04T09:22:16.753Z",
       "payja_status": "APROVADO",
       "payja_rejection_reason": null,
       "payja_limit": 4000,
@@ -744,6 +744,18 @@
       "status": "CONCLUIDO",
       "referencia_externa": "PAYJA-1777886332096",
       "criado_em": "2026-05-04T09:18:52.101Z"
+    },
+    {
+      "id": "02dbdadd-2722-4707-843f-48778c937bb0",
+      "cliente_id": "b8412be8-e383-4381-8290-435239c9e058",
+      "tipo": "DEBITO",
+      "valor": 4000,
+      "descricao": "Crédito PayJA - 4 anos - 225,33 MZN/mês",
+      "origem": "0001000000020",
+      "destino": "258842034567",
+      "status": "CONCLUIDO",
+      "referencia_externa": "PAYJA-1777886536745",
+      "criado_em": "2026-05-04T09:22:16.751Z"
     }
   ],
   "validacoes": [
@@ -1208,13 +1220,25 @@
       "processado_em": "2026-05-04T09:18:52.101Z",
       "tentativas": 0,
       "criado_em": "2026-05-04T09:18:52.101Z"
+    },
+    {
+      "id": "57dc4f27-ffbd-43e7-9696-d80807163fb3",
+      "cliente_id": "b8412be8-e383-4381-8290-435239c9e058",
+      "transacao_id": "02dbdadd-2722-4707-843f-48778c937bb0",
+      "valor": 4000,
+      "numero_emola": "258842034567",
+      "status": "CONCLUIDO",
+      "referencia_payja": "PAYJA-1777886536745",
+      "processado_em": "2026-05-04T09:22:16.752Z",
+      "tentativas": 0,
+      "criado_em": "2026-05-04T09:22:16.752Z"
     }
   ],
   "emprestimos": [],
   "pagamentos": [],
   "consultas_capacidade": [],
   "metrics": {
-    "last_payja_pull_at": "2026-05-04T09:18:12.535Z",
+    "last_payja_pull_at": "2026-05-04T09:23:12.544Z",
     "last_payja_loans_sync_at": "2026-02-27T08:59:46.468Z"
   },
   "payja_decisions": []
