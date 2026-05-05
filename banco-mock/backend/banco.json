@@ -22,7 +22,7 @@
       "score_credito": 750,
       "historico_pagamentos": "BOM",
       "criado_em": "2025-02-26T10:29:08.108Z",
-      "atualizado_em": "2026-05-04T09:42:45.065Z",
+      "atualizado_em": "2026-05-04T10:30:37.944Z",
       "payja_status": "APROVADO",
       "payja_rejection_reason": null,
       "payja_limit": 14000,
@@ -776,6 +776,30 @@
       "status": "CONCLUIDO",
       "referencia_externa": "PAYJA-1777889085517",
       "criado_em": "2026-05-04T10:04:45.522Z"
+    },
+    {
+      "id": "0363ecea-9d34-4805-9998-7cee27939ea2",
+      "cliente_id": "59004a6e-38c5-48d4-b4a0-4f1d59a32c46",
+      "tipo": "DEBITO",
+      "valor": 5000,
+      "descricao": "Teste fluxo completo",
+      "origem": "0001000000001",
+      "destino": "258841234567",
+      "status": "CONCLUIDO",
+      "referencia_externa": "test-flow-001",
+      "criado_em": "2026-05-04T10:29:22.481Z"
+    },
+    {
+      "id": "59381fec-69bb-4da0-95bd-676445cf1736",
+      "cliente_id": "59004a6e-38c5-48d4-b4a0-4f1d59a32c46",
+      "tipo": "DEBITO",
+      "valor": 3000,
+      "descricao": "Desembolso empréstimo - test-flow-002",
+      "origem": "0001000000001",
+      "destino": "258841234567",
+      "status": "CONCLUIDO",
+      "referencia_externa": "test-flow-002",
+      "criado_em": "2026-05-04T10:30:37.943Z"
     }
   ],
   "validacoes": [
@@ -1264,6 +1288,30 @@
       "processado_em": "2026-05-04T10:04:45.523Z",
       "tentativas": 0,
       "criado_em": "2026-05-04T10:04:45.523Z"
+    },
+    {
+      "id": "795b27fd-c2f1-4f5a-b391-b72a3eb3a5b2",
+      "cliente_id": "59004a6e-38c5-48d4-b4a0-4f1d59a32c46",
+      "transacao_id": "0363ecea-9d34-4805-9998-7cee27939ea2",
+      "valor": 5000,
+      "numero_emola": "258841234567",
+      "status": "CONCLUIDO",
+      "referencia_payja": "test-flow-001",
+      "processado_em": "2026-05-04T10:29:22.482Z",
+      "tentativas": 0,
+      "criado_em": "2026-05-04T10:29:22.482Z"
+    },
+    {
+      "id": "bd70482d-8b13-4797-bdd6-da033fdd711b",
+      "cliente_id": "59004a6e-38c5-48d4-b4a0-4f1d59a32c46",
+      "transacao_id": "59381fec-69bb-4da0-95bd-676445cf1736",
+      "valor": 3000,
+      "numero_emola": "258841234567",
+      "status": "CONCLUIDO",
+      "referencia_payja": "test-flow-002",
+      "processado_em": "2026-05-04T10:30:37.943Z",
+      "tentativas": 0,
+      "criado_em": "2026-05-04T10:30:37.944Z"
     }
   ],
   "emprestimos": [],
@@ -1283,7 +1331,7 @@
   ],
   "consultas_capacidade": [],
   "metrics": {
-    "last_payja_pull_at": "2026-05-04T10:27:23.505Z",
+    "last_payja_pull_at": "2026-05-05T06:11:27.360Z",
     "last_payja_loans_sync_at": "2026-02-27T08:59:46.468Z"
   },
   "payja_decisions": []

@@ -17,6 +17,7 @@ const syncStatusRoutes = require('./routes/sync-status');
 const payjaLoansRoutes = require('./routes/payja-loans');
 const payjaFeedbackRoutes = require('./routes/payja-feedback');
 const payjaDecisionsRoutes = require('./routes/payja-decisions');
+const dossierRoutes = require('./routes/dossier');
 
 const app = express();
 const PORT = process.env.PORT || 4500;
@@ -55,6 +56,8 @@ app.use('/api/payja-loans', payjaLoansRoutes);
 app.use('/api/payja-feedback', payjaFeedbackRoutes);
 app.use('/api', payjaDecisionsRoutes);
 app.use('/api/sync', syncStatusRoutes);
+app.use('/api/dossier', dossierRoutes);
+app.use('/uploads', require('express').static(require('path').join(__dirname, '../uploads')));
 
 // Error handler
 app.use((err, req, res, next) => {
