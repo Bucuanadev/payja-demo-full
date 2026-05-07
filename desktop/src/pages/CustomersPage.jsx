@@ -147,13 +147,35 @@ function CustomersPage() {
   const notApprovedColumns = [
     ...baseColumns,
     {
-      title: 'Motivo da Rejeição',
+      title: 'Critérios Não Cumpridos',
       key: 'rejectionReason',
-      render: (_, record) => (
-        <Text type="danger">
-          <CloseCircleOutlined /> {record.rejectionReason || "Critérios de elegibilidade não atingidos."}
-        </Text>
-      ),
+      render: (_, record) => {
+        // Tentar obter o array de razões do scoringResults
+        let reasons = [];
+        try {
+          const factors = JSON.parse(record.scoringResults?.[0]?.factors || '{}');
+          const bankReason = factors.bankReason || '';
+          if (bankReason && bankReason !== 'Cliente cumpre todos os requisitos bancários') {
+            reasons = bankReason.split(' | ').filter(r => r && r !== 'Elegível');
+          }
+        } catch(e) {}
+        // Fallback para rejectionReason simples
+        if (reasons.length === 0 && record.rejectionReason) {
+          reasons = [record.rejectionReason];
+        }
+        if (reasons.length === 0) {
+          return <Text type="secondary">Análise pendente</Text>;
+        }
+        return (
+          <Space direction="vertical" size={2}>
+            {reasons.map((r, i) => (
+              <Tag key={i} color="red" style={{ margin: '2px 0' }}>
+                <CloseCircleOutlined /> {r}
+              </Tag>
+            ))}
+          </Space>
+        );
+      },
     },
     {
       title: 'Status',
@@ -240,12 +262,40 @@ function CustomersPage() {
                 message="Análise de Risco: NÃO ELEGÍVEL"
                 description={
                   <div>
-                    <Text strong>Motivo da Rejeição:</Text>
-                    <ul style={{ marginTop: 8 }}>
-                      <li><Text type="danger">{selectedCustomer.rejectionReason || "Critérios de score interno não atingidos."}</Text></li>
+                    <Text strong>Critérios de Elegibilidade Não Cumpridos:</Text>
+                    <ul style={{ marginTop: 8, marginBottom: 8 }}>
+                      {(() => {
+                        let reasons = [];
+                        try {
+                          const factors = JSON.parse(selectedCustomer.scoringResults?.[0]?.factors || '{}');
+                          const bankReason = factors.bankReason || '';
+                          if (bankReason && bankReason !== 'Cliente cumpre todos os requisitos bancários') {
+                            reasons = bankReason.split(' | ').filter(r => r && r !== 'Elegível');
+                          }
+                          // Também verificar flags individuais
+                          if (reasons.length === 0) {
+                            if (factors.isAccountActive === false) reasons.push('Conta Bancária Inativa');
+                            if (factors.isBiValid === false) reasons.push('B.I. Expirado ou Inválido');
+                            if (factors.isIncumpridor === true) reasons.push('Cliente INCUMPRIDOR (Lista Negra)');
+                            if (factors.hasMinimumAccountAge === false) reasons.push('Conta com menos de 6 meses');
+                            if (factors.hasSalaryDomiciliation === false) reasons.push('Sem Domiciliação de Salário');
+                            if (factors.hasAcceptableEffortRate === false) reasons.push(`Taxa de Esforço Elevada (${factors.effortRate}%)`);
+                            if (factors.hasExcessiveDebt === true) reasons.push('Dívida Total Excessiva');
+                          }
+                        } catch(e) {}
+                        if (reasons.length === 0 && selectedCustomer.rejectionReason) {
+                          reasons = [selectedCustomer.rejectionReason];
+                        }
+                        if (reasons.length === 0) {
+                          return <li><Text type="danger">Critérios de elegibilidade não especificados</Text></li>;
+                        }
+                        return reasons.map((r, i) => (
+                          <li key={i}><Text type="danger"><CloseCircleOutlined /> {r}</Text></li>
+                        ));
+                      })()}
                     </ul>
                     <Text type="secondary" style={{ fontSize: '12px' }}>
-                      * O sistema enviou automaticamente as instruções de regularização para este cliente.
+                      * O cliente pode corrigir os critérios em falta e o banco pode solicitar nova avaliação.
                     </Text>
                   </div>
                 }

@@ -311,9 +311,23 @@ function ClientesPage() {
     },
     {
       title: 'PayJA', dataIndex: 'payja_status', key: 'payja',
-      render: v => {
+      render: (v, record) => {
         const map = { APROVADO: ['green', '✅ Aprovado'], REJEITADO: ['red', '❌ Rejeitado'], PENDENTE: ['orange', '⏳ Pendente'] };
         const [color, label] = map[v] || ['default', v || 'N/A'];
+        if (v === 'REJEITADO') {
+          const reasons = record.payja_rejection_reasons || (record.payja_rejection_reason ? [record.payja_rejection_reason] : []);
+          const tooltipContent = reasons.length > 0 ? (
+            <div>
+              <div style={{ fontWeight: 'bold', marginBottom: 4 }}>Critérios não cumpridos:</div>
+              {reasons.map((r, i) => <div key={i}>• {r}</div>)}
+            </div>
+          ) : 'Critérios não especificados';
+          return (
+            <Tooltip title={tooltipContent} color="#ff4d4f">
+              <Tag color={color} style={{ cursor: 'help' }}>{label} ℹ</Tag>
+            </Tooltip>
+          );
+        }
         return <Tag color={color}>{label}</Tag>;
       }
     },
@@ -378,6 +392,12 @@ function ClientesPage() {
           </TabPane>
           <TabPane tab={<span>✅ Aprovados <Badge count={aprovados} style={{ backgroundColor: '#52c41a' }} /></span>} key="aprovados">
             <Table dataSource={clientes.filter(c => c.payja_status === 'APROVADO')} columns={columns} rowKey="id" loading={loading} size="small" pagination={{ pageSize: 10 }} />
+          </TabPane>
+          <TabPane tab={<span>❌ Não Aprovados <Badge count={clientes.filter(c => c.payja_status === 'REJEITADO').length} style={{ backgroundColor: '#ff4d4f' }} /></span>} key="rejeitados">
+            <Table dataSource={clientes.filter(c => c.payja_status === 'REJEITADO')} columns={columns} rowKey="id" loading={loading} size="small" pagination={{ pageSize: 10 }} />
+          </TabPane>
+          <TabPane tab={<span>⏳ Pendentes <Badge count={clientes.filter(c => c.payja_status === 'PENDENTE' || !c.payja_status).length} style={{ backgroundColor: '#faad14' }} /></span>} key="pendentes">
+            <Table dataSource={clientes.filter(c => c.payja_status === 'PENDENTE' || !c.payja_status)} columns={columns} rowKey="id" loading={loading} size="small" pagination={{ pageSize: 10 }} />
           </TabPane>
           <TabPane tab={<span>📁 Dossier Incompleto <Badge count={clientes.filter(c => !c.dossier?.completo).length} style={{ backgroundColor: '#faad14' }} /></span>} key="dossier">
             <Table dataSource={clientes.filter(c => !c.dossier?.completo)} columns={columns} rowKey="id" loading={loading} size="small" pagination={{ pageSize: 10 }} />
@@ -832,7 +852,24 @@ function ClientesPage() {
                 <Descriptions.Item label="Histórico">{selectedCliente.historico_pagamentos}</Descriptions.Item>
                 <Descriptions.Item label="Status Crédito">{selectedCliente.status_credito}</Descriptions.Item>
                 <Descriptions.Item label="Dívida Total">{Number(selectedCliente.divida_total || 0).toLocaleString('pt-MZ')} MZN</Descriptions.Item>
-                <Descriptions.Item label="PayJA Status">{selectedCliente.payja_status}</Descriptions.Item>
+                <Descriptions.Item label="PayJA Status">
+                  <Space direction="vertical" size={2}>
+                    <Tag color={selectedCliente.payja_status === 'APROVADO' ? 'green' : selectedCliente.payja_status === 'REJEITADO' ? 'red' : 'orange'}>
+                      {selectedCliente.payja_status || 'N/A'}
+                    </Tag>
+                    {selectedCliente.payja_status === 'REJEITADO' && (() => {
+                      const reasons = selectedCliente.payja_rejection_reasons || (selectedCliente.payja_rejection_reason ? [selectedCliente.payja_rejection_reason] : []);
+                      return reasons.length > 0 ? (
+                        <div style={{ marginTop: 4 }}>
+                          <Text type="secondary" style={{ fontSize: 11 }}>Critérios não cumpridos:</Text>
+                          {reasons.map((r, i) => (
+                            <div key={i} style={{ color: '#ff4d4f', fontSize: 11 }}>• {r}</div>
+                          ))}
+                        </div>
+                      ) : null;
+                    })()}
+                  </Space>
+                </Descriptions.Item>
                 <Descriptions.Item label="Limite PayJA">{Number(selectedCliente.payja_credit_limit || 0).toLocaleString('pt-MZ')} MZN</Descriptions.Item>
               </Descriptions>
             </TabPane>
